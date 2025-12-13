@@ -76,12 +76,23 @@ try {
 
 Write-Info "Extracting..."
 Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
-$extractedDirs = Get-ChildItem $tempDir -Directory
-if ($extractedDirs.Count -ge 1) {
-  Move-Item -Path $extractedDirs[0].FullName -Destination $targetDir -Force
+try {
+  $statswinDir = Get-ChildItem -Path $tempDir -Directory | Where-Object { $_.Name -eq 'statswin' } | Select-Object -First 1
+} catch { $statswinDir = $null }
+New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+if ($statswinDir) {
+  Get-ChildItem -Path $statswinDir.FullName -Force | ForEach-Object {
+    Move-Item -Path $_.FullName -Destination $targetDir -Force
+  }
 } else {
-  New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
-  Get-ChildItem $tempDir -File | ForEach-Object { Move-Item -Path $_.FullName -Destination $targetDir -Force }
+  $anyDir = Get-ChildItem -Path $tempDir -Directory | Select-Object -First 1
+  if ($anyDir) {
+    Get-ChildItem -Path $anyDir.FullName -Force | ForEach-Object {
+      Move-Item -Path $_.FullName -Destination $targetDir -Force
+    }
+  } else {
+    Get-ChildItem $tempDir -File | ForEach-Object { Move-Item -Path $_.FullName -Destination $targetDir -Force }
+  }
 }
 
 Write-Info "Configuring Spicetify..."

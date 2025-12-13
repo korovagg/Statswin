@@ -1,5 +1,5 @@
 # Statswin
-
+Detailed listening stats in Spotify — your listening time, track and artist counts and top lists in one place.
 ## One-Click Install (recommended)
 ### Windows
 - Open PowerShell and run:

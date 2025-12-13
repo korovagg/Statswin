@@ -13,7 +13,7 @@ Detailed listening stats in Spotify — your listening time, track and artist co
   ```
 
 ## Manual Install
-- Download the latest Statswin release `.zip` or build locally (`npm run build-local`).
+- Download the latest Statswin release `.zip`.
 - Locate your Spicetify folder:
   - CLI: run `spicetify config-dir` and open the `CustomApps` subfolder.
   - Windows: `%APPDATA%\spicetify\CustomApps`

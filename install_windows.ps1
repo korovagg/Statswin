@@ -44,7 +44,7 @@ function Get-LatestReleaseZipUrl {
     $asset = $releaseInfo.assets | Where-Object { $_.name -like "$AssetPrefix*.zip" -and $_.name -notlike "*source*" } | Select-Object -First 1
     if ($asset) { return $asset.browser_download_url }
   } catch {}
-  return "https://github.com/$Owner/$Repo/releases/download/1.0.0/statswin-v1.0.0.zip"
+  return "https://github.com/$Owner/$Repo/releases/download/1.0.1/statswin-v1.0.1.zip"
 }
 
 Write-Info "Downloading latest Statswin release..."

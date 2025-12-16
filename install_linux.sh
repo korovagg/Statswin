@@ -35,7 +35,7 @@ latest_zip_url() {
   if url="$(curl -fsSL "$api" | grep -Eo '"browser_download_url":\s*"[^"]+"' | grep "$prefix" | grep -v source | head -n1 | cut -d'"' -f4)"; then
     printf "%s" "$url"
   else
-    printf "https://github.com/%s/%s/releases/download/1.0.0/statswin-v1.0.0.zip" "$owner" "$repo"
+    printf "https://github.com/%s/%s/releases/download/1.0.1/statswin-v1.0.1.zip" "$owner" "$repo"
   fi
 }
 

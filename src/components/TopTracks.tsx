@@ -1,12 +1,12 @@
-import React from "react";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import styles from "../css/app.module.scss";
 import { Session } from "../types";
 import { PeriodRange } from "../types/period";
 import { useI18n } from "../utils/i18n";
 import { TopItem, TopSort, aggregateTop } from "../utils/topAggregators";
-import { formatDateRange, formatDuration } from "../utils/format";
+import { formatDuration } from "../utils/format";
 import { openUri } from "./shared";
+import { ChevronDownIcon } from "./icons";
 
 type Props = {
   sessions: Session[];
@@ -18,64 +18,122 @@ type Props = {
  * counted once per `playId` and the list is sorted exactly once.
  */
 export function TopTracks({ sessions, topRange }: Props) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const [sortBy, setSortBy] = useState<TopSort>("plays");
   const [expanded, setExpanded] = useState(false);
 
   const items = useMemo(() => aggregateTop(sessions, "track", sortBy), [sessions, sortBy]);
   const visible = expanded ? items : items.slice(0, 5);
+  const hasRows = items.length > 0;
 
   return (
-    <section className={styles.topInner}>
-      <div className={styles.topHeaderRow}>
-        <h2 className={styles.topTitle}>{t("top.tracks.title")}</h2>
-        <div className={styles.dateRangeSmall}>{formatDateRange(topRange.start, topRange.end, lang)}</div>
-        <select
-          className={styles.sortSelect}
-          value={sortBy}
-          onChange={(event) => setSortBy(event.target.value === "time" ? "time" : "plays")}
-          aria-label={t("top.sort.label")}
+    <Panel
+      title={t("top.tracks.title")}
+      sortBy={sortBy}
+      onSortChange={setSortBy}
+      hasRows={hasRows}
+      coverUrl={visible[0]?.imageUrl}
+      topRange={topRange}
+    >
+      {visible.map((item, index) => (
+        <TopRow
+          key={item.key}
+          item={item}
+          index={index}
+          subtitle={item.subtitle}
+          onOpen={() => openUri(item.uri)}
+        />
+      ))}
+      {!hasRows && <div className={styles.emptyState}>{t("top.empty")}</div>}
+      {items.length > 5 && (
+        <button
+          type="button"
+          className={styles.panelToggle}
+          onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
         >
-          <option value="plays">{t("top.sort.plays")}</option>
-          <option value="time">{t("top.sort.time")}</option>
-        </select>
-      </div>
-
-      <div className={styles.topList}>
-        {visible.map((item, index) => (
-          <TopRow key={item.key} item={item} index={index} onOpen={() => openUri(item.uri)} />
-        ))}
-        {items.length === 0 && <div className={styles.emptyState}>{t("top.empty")}</div>}
-        {items.length > 5 && (
-          <button
-            type="button"
-            className={styles.topToggle}
-            onClick={() => setExpanded((value) => !value)}
-            aria-expanded={expanded}
-          >
-            {expanded ? t("top.showLess") : t("top.showMore")}
-          </button>
-        )}
-      </div>
-    </section>
+          {expanded ? t("top.showLess") : t("top.showMore")}
+        </button>
+      )}
+    </Panel>
   );
 }
 
-function TopRow({ item, index, onOpen }: { item: TopItem; index: number; onOpen: () => void }) {
+function TopRow({
+  item,
+  index,
+  subtitle,
+  onOpen,
+}: {
+  item: TopItem;
+  index: number;
+  subtitle: string;
+  onOpen: () => void;
+}) {
   return (
-    <button type="button" className={styles.topRow} onClick={onOpen} aria-label={`${item.name} — ${item.subtitle}`}>
-      <div className={styles.topAvatar} aria-hidden>
-        {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" /> : <div className={styles.topAvatarFallback} />}
-      </div>
-      <div className={styles.topIndex}>{index + 1}</div>
-      <div className={styles.topMeta}>
-        <div className={styles.topPrimary}>{item.name}</div>
-        <div className={styles.topSecondary}>{item.subtitle}</div>
-      </div>
-      <div className={styles.topCounters}>
-        <div className={styles.topCounter}>{item.plays}</div>
-        <div className={styles.topTime}>{formatDuration(item.ms, "ms")}</div>
-      </div>
+    <button type="button" className={styles.listRow} onClick={onOpen} aria-label={`${item.name} - ${subtitle}`}>
+      <span className={styles.listRank}>{index + 1}</span>
+      <span className={styles.listThumb} aria-hidden>
+        {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" /> : null}
+      </span>
+      <span className={styles.listText}>
+        <span className={styles.listTitle}>{item.name}</span>
+        <span className={styles.listSubtitle}>{subtitle}</span>
+      </span>
+      <span className={styles.listPlays}>{item.plays}</span>
+      <span className={styles.listTime}>{formatDuration(item.ms, "ms")}</span>
     </button>
+  );
+}
+
+/**
+ * Shared panel chrome for the two top lists: hero header with a collage of the
+ * first cover, title, period caption and a compact sort menu.
+ */
+export function Panel({
+  title,
+  sortBy,
+  onSortChange,
+  hasRows,
+  coverUrl,
+  topRange,
+  children,
+}: {
+  title: string;
+  sortBy: TopSort;
+  onSortChange: (next: TopSort) => void;
+  hasRows: boolean;
+  /** Album art of the first row, used as the panel hero image. */
+  coverUrl?: string;
+  topRange: PeriodRange;
+  children: React.ReactNode;
+}) {
+  const { t, lang } = useI18n();
+  const caption = new Date(topRange.start).toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <section className={styles.panel}>
+      <header className={styles.panelHeader}>
+        <span className={`${styles.panelArt} ${hasRows ? "" : styles.panelArtEmpty}`} aria-hidden>
+          {coverUrl ? <img src={coverUrl} alt="" loading="lazy" /> : null}
+        </span>
+        <span className={styles.panelHeaderText}>
+          <span className={styles.panelTitle}>{title}</span>
+          <span className={styles.panelCaption}>{caption}</span>
+        </span>
+        <label className={styles.miniSelect}>
+          <span className={styles.visuallyHidden}>{t("top.sort.label")}</span>
+          <select value={sortBy} onChange={(event) => onSortChange(event.target.value === "time" ? "time" : "plays")}>
+            <option value="plays">{t("top.sort.plays")}</option>
+            <option value="time">{t("top.sort.time")}</option>
+          </select>
+          <ChevronDownIcon className={styles.miniSelectIcon} />
+        </label>
+      </header>
+      <div className={styles.listBody}>{children}</div>
+    </section>
   );
 }

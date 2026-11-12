@@ -4,7 +4,6 @@
   "filter.ariaToolbar": "Period selection",
   "filter.date.start": "Start",
   "filter.date.end": "End",
-
   "period.today": "Today",
   "period.yesterday": "Yesterday",
   "period.week": "Week",
@@ -17,7 +16,6 @@
   "period.previous.month": "last month",
   "period.previous.year": "last year",
   "period.previous.custom": "previous period",
-
   "settings.title": "Settings",
   "settings.close": "Close settings",
   "settings.reset.text": "You can perform a full reset of statistics. This will delete all saved listening data.",
@@ -37,23 +35,20 @@
   "settings.import.skipDupes": "Skip duplicates",
   "settings.import.confirm": "Import",
   "settings.import.cancel": "Cancel",
-  "settings.import.summary": "Ready to import {count} sessions.",
+  "settings.import.summary": "{file} — {count} sessions ready to import.",
   "settings.import.done": "Imported {added} sessions ({skipped} skipped).",
   "settings.import.error.invalidJson": "The file is not valid JSON.",
   "settings.import.error.invalidShape": "The file does not contain a Statswin backup.",
   "settings.import.error.tooLarge": "The file is larger than 20 MB.",
   "settings.import.error.read": "Could not read the selected file.",
-
   "summary.range": "Range",
   "summary.listeningTime": "Listening time",
   "summary.vsPrevious": "vs {period}",
   "summary.noComparison": "No data for the previous period",
-
   "extra.tracksCount": "Tracks",
   "extra.artistsCount": "Artists",
   "extra.skippedCount": "Skipped",
   "extra.rollupNote": "Track and artist counts only cover the last 90 days; listening time is complete.",
-
   "chart.title.todayHours": "Listening by hour",
   "chart.title.yesterdayHours": "Listening by hour",
   "chart.title.weekDays": "Listening by day",
@@ -63,12 +58,10 @@
   "chart.timeUnit.minsec": "min:sec",
   "chart.empty": "No listening data for this period yet",
   "chart.axisHours": "Hour",
-
   "storage.warning.quota": "Storage is almost full — older sessions could not be saved. Free up space or reset your stats.",
   "storage.warning.migration": "Your saved statistics were migrated to the new format ({count} sessions).",
   "storage.warning.migrationFailed": "Statswin could not migrate your saved statistics. The original data is kept untouched.",
   "storage.warning.freeSpace": "Free up space",
-
   "top.tracks.title": "Top tracks",
   "top.artists.title": "Top artists",
   "top.range": "Range:",
@@ -80,12 +73,24 @@
   "top.sort.plays": "By plays",
   "top.sort.time": "By time",
   "top.rollupNote": "Only the last 90 days are listed in detail.",
-
   "info.title": "Information",
   "info.text": "Detailed listening stats in Spotify — your listening time, track and artist counts and top lists in one place.",
   "info.author": "Author",
   "info.github": "GitHub",
   "info.reportBug": "Report a bug",
-
-  "extension.started": "Statswin tracker is running"
+  "extension.started": "Statswin tracker is running",
+  "filter.date.year": "Year",
+  "settings.tab.data": "Data",
+  "settings.tab.general": "General",
+  "settings.data.title": "Your data",
+  "settings.data.hint": "Everything is stored locally in Spotify. Export a copy before clearing Spotify data or reinstalling.",
+  "settings.backupHint": "Download sessions, the track registry and daily totals as JSON.",
+  "settings.importHint": "Restore a backup or merge another device. Validated before anything is written.",
+  "settings.diagnosticsHint": "Export the debug log for bug reports. No track metadata is included.",
+  "settings.import.mode": "Import mode",
+  "settings.import.mergeHint": "Adds the file to your current history.",
+  "settings.import.replaceHint": "Deletes current history and keeps only the file.",
+  "settings.danger.title": "Danger zone",
+  "settings.language.hint": "Changes the interface language; your data is untouched.",
+  "period.label": "Period"
 }

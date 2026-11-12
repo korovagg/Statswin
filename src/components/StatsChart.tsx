@@ -18,6 +18,8 @@ const PADDING_BOTTOM = 22;
 const MIN_BAR_WIDTH = 24;
 /** Approximate width of one 10px label character, used for label slotting. */
 const LABEL_CHAR_WIDTH = 6;
+/** Bars never exceed this width, so single-point ranges stay readable. */
+const MAX_BAR_WIDTH = 56;
 
 /**
  * Responsive bar chart.
@@ -56,7 +58,7 @@ export function StatsChart({ data, titleKey }: Props) {
   ];
 
   return (
-    <div className={styles.chartWrapper} ref={containerRef}>
+    <div className={`${styles.card} ${styles.chartWrapper}`} ref={containerRef}>
       <div className={styles.chartTitle}>
         {t(titleKey ?? "chart.title.monthDays")} <span className={styles.chartUnit}>({t("chart.timeUnit.minsec")})</span>
       </div>
@@ -99,6 +101,11 @@ export function StatsChart({ data, titleKey }: Props) {
             const y = PADDING_TOP + plotHeight - h;
             const w = Math.max(1, barW - barPadding);
             const showLabel = index % labelStep === 0;
+            // A single bar would otherwise stretch across the whole plot; keep
+            // bars visually consistent with multi-point charts.
+            const barWidth = Math.min(w, MAX_BAR_WIDTH);
+            const barX = x + (w - barWidth) / 2;
+            const highlighted = hoverIndex === index;
             return (
               <g
                 key={`${index}-${point.label}`}
@@ -106,19 +113,42 @@ export function StatsChart({ data, titleKey }: Props) {
                 onMouseLeave={() => setHoverIndex((prev) => (prev === index ? null : prev))}
               >
                 <rect
-                  x={x}
+                  x={barX}
                   y={y}
-                  width={w}
+                  width={barWidth}
                   height={Math.max(h, point.ms > 0 ? 2 : 0)}
-                  rx={Math.min(4, w / 2)}
+                  rx={Math.min(4, barWidth / 2)}
                   fill={`url(#bar-${gradientId})`}
-                  opacity={hoverIndex == null || hoverIndex === index ? 1 : 0.55}
+                  opacity={hoverIndex == null || highlighted ? 1 : 0.55}
                 >
                   <title>{`${point.label}: ${formatMinSec(point.ms)}`}</title>
                 </rect>
+                {highlighted && (
+                  <g>
+                    <rect
+                      x={Math.min(Math.max(barX + barWidth / 2 - 54, PADDING_LEFT), chartWidth - PADDING_RIGHT - 108)}
+                      y={Math.max(y - 26, 2)}
+                      width={108}
+                      height={20}
+                      rx={6}
+                      fill="var(--sw-surface-2)"
+                      stroke="var(--sw-border)"
+                    />
+                    <text
+                      x={Math.min(Math.max(barX + barWidth / 2, PADDING_LEFT + 54), chartWidth - PADDING_RIGHT - 54)}
+                      y={Math.max(y - 12, 16)}
+                      fontSize="10"
+                      fontWeight="600"
+                      textAnchor="middle"
+                      fill="var(--sw-text)"
+                    >
+                      {`${point.label} · ${formatMinSec(point.ms)}`}
+                    </text>
+                  </g>
+                )}
                 {showLabel && (
                   <text
-                    x={x + w / 2}
+                    x={barX + barWidth / 2}
                     y={chartHeight - 6}
                     fontSize="10"
                     textAnchor="middle"

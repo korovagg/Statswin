@@ -4,7 +4,6 @@
   "filter.ariaToolbar": "Выбор периода",
   "filter.date.start": "Начало",
   "filter.date.end": "Конец",
-
   "period.today": "Сегодня",
   "period.yesterday": "Вчера",
   "period.week": "Неделя",
@@ -17,7 +16,6 @@
   "period.previous.month": "прошлый месяц",
   "period.previous.year": "прошлый год",
   "period.previous.custom": "предыдущий период",
-
   "settings.title": "Настройки",
   "settings.close": "Закрыть настройки",
   "settings.reset.text": "Вы можете выполнить полный сброс статистики. Это удалит все сохранённые данные о прослушивании.",
@@ -37,23 +35,20 @@
   "settings.import.skipDupes": "Пропускать дубликаты",
   "settings.import.confirm": "Импортировать",
   "settings.import.cancel": "Отмена",
-  "settings.import.summary": "Готово к импорту сессий: {count}.",
+  "settings.import.summary": "{file} — сессий к импорту: {count}.",
   "settings.import.done": "Импортировано сессий: {added} (пропущено: {skipped}).",
   "settings.import.error.invalidJson": "Файл не является корректным JSON.",
   "settings.import.error.invalidShape": "Файл не похож на резервную копию Statswin.",
   "settings.import.error.tooLarge": "Файл больше 20 МБ.",
   "settings.import.error.read": "Не удалось прочитать выбранный файл.",
-
   "summary.range": "Диапазон",
   "summary.listeningTime": "Время прослушивания",
   "summary.vsPrevious": "к {period}",
   "summary.noComparison": "Нет данных за предыдущий период",
-
   "extra.tracksCount": "Треки",
   "extra.artistsCount": "Артисты",
   "extra.skippedCount": "Пропуски",
   "extra.rollupNote": "Число треков и артистов учтено только за последние 90 дней; время прослушивания учитывается полностью.",
-
   "chart.title.todayHours": "Прослушивание по часам",
   "chart.title.yesterdayHours": "Прослушивание по часам",
   "chart.title.weekDays": "Прослушивание по дням",
@@ -63,12 +58,10 @@
   "chart.timeUnit.minsec": "мин:сек",
   "chart.empty": "За этот период данных пока нет",
   "chart.axisHours": "Час",
-
   "storage.warning.quota": "Хранилище почти заполнено — старые сессии не сохраняются. Освободите место или сбросьте статистику.",
   "storage.warning.migration": "Сохранённая статистика перенесена в новый формат (сессий: {count}).",
   "storage.warning.migrationFailed": "Не удалось перенести сохранённую статистику. Исходные данные не изменены.",
   "storage.warning.freeSpace": "Освободить место",
-
   "top.tracks.title": "Топ треков",
   "top.artists.title": "Топ исполнителей",
   "top.range": "Диапазон:",
@@ -80,12 +73,24 @@
   "top.sort.plays": "По прослушиваниям",
   "top.sort.time": "По времени",
   "top.rollupNote": "Подробно перечислены только последние 90 дней.",
-
   "info.title": "Информация",
   "info.text": "Подробная статистика прослушивания в Spotify — время прослушивания, количество треков и исполнителей, а также топ-листы в одном месте.",
   "info.author": "Автор",
   "info.github": "GitHub",
   "info.reportBug": "Сообщить об ошибке",
-
-  "extension.started": "Трекер Statswin запущен"
+  "extension.started": "Трекер Statswin запущен",
+  "filter.date.year": "Год",
+  "settings.tab.data": "Данные",
+  "settings.tab.general": "Общие",
+  "settings.data.title": "Ваши данные",
+  "settings.data.hint": "Всё хранится локально в Spotify. Перед очисткой данных Spotify или переустановкой сделайте резервную копию.",
+  "settings.backupHint": "Скачать сессии, реестр треков и дневные итоги в JSON.",
+  "settings.importHint": "Восстановите копию или объедините данные с другого устройства. Файл проверяется до записи.",
+  "settings.diagnosticsHint": "Экспорт журнала для сообщения об ошибке. Метаданные треков не включаются.",
+  "settings.import.mode": "Режим импорта",
+  "settings.import.mergeHint": "Добавляет файл к текущей истории.",
+  "settings.import.replaceHint": "Удаляет текущую историю и оставляет только файл.",
+  "settings.danger.title": "Опасная зона",
+  "settings.language.hint": "Меняет язык интерфейса; данные не затрагиваются.",
+  "period.label": "Период"
 }

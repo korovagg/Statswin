@@ -1,16 +1,24 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import en from "../locales/en.json";
 import ru from "../locales/ru.json";
 import { STORAGE_KEYS } from "../config";
 
 export type Locale = "en" | "ru";
 
+/** Stored preference: a concrete language or "auto" (follow the client). */
+export type LanguagePref = Locale | "auto";
+
 type Dictionary = Record<string, string>;
 type TemplateVars = Record<string, string | number>;
 
 type I18nContextValue = {
+  /** Resolved language actually used for translations. */
   lang: Locale;
-  setLang: (lang: Locale) => void;
+  /** Stored preference ("auto" follows the client language). */
+  langPref: LanguagePref;
+  /** Language Statswin detects from the environment right now. */
+  detectedLang: Locale;
+  setLang: (lang: LanguagePref) => void;
   t: (key: string, vars?: TemplateVars) => string;
 };
 
@@ -68,15 +76,23 @@ function detectLanguage(): Locale {
  * A missing preference means "follow the client language"; the choice is
  * persisted as soon as the user picks one in the settings dialog.
  */
-function getStoredLanguage(): Locale {
-  if (typeof window === "undefined") return "en";
+function getLanguagePref(): LanguagePref {
+  if (typeof window === "undefined") return "auto";
   try {
     const raw = window.localStorage.getItem(STORAGE_KEYS.language);
-    if (raw === "ru" || raw === "en") return raw;
+    if (raw === "ru" || raw === "en" || raw === "auto") return raw;
   } catch {
     // localStorage can be unavailable (privacy mode); detection still works.
   }
-  return detectLanguage();
+  return "auto";
+}
+
+/**
+ * Resolves the stored preference into the language that is actually used.
+ */
+function getStoredLanguage(): Locale {
+  const pref = getLanguagePref();
+  return pref === "auto" ? detectLanguage() : pref;
 }
 
 /**
@@ -105,17 +121,50 @@ function resolveKey(lang: Locale, key: string): string {
  * Provides the active language and a translation function to the React tree.
  */
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Locale>(getStoredLanguage);
+  const [langPref, setLangPref] = useState<LanguagePref>(getLanguagePref);
+  // Detection reads the client locale, which can arrive after the first render
+  // (Spicetify injects it during startup); re-resolve when it does.
+  const [detectedLang, setDetectedLang] = useState<Locale>(detectLanguage);
+  const [detectTick, setDetectTick] = useState(0);
 
-  const setLang = (next: Locale) => {
-    setLangState(next);
+  const lang: Locale = langPref === "auto" ? detectedLang : langPref;
+
+  useEffect(() => {
+    if (langPref !== "auto") return;
+    setDetectedLang(detectLanguage());
+  }, [langPref, detectTick]);
+
+  // Poll briefly for the client locale, then stop; the webview language is
+  // available immediately, so this only refines an early "en" fallback.
+  useEffect(() => {
+    if (langPref !== "auto" || detectedLang !== "en") return;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      const next = detectLanguage();
+      if (next !== "en" || attempts >= 20) {
+        window.clearInterval(timer);
+        if (next !== "en") setDetectedLang(next);
+      } else {
+        setDetectTick((value) => value + 1);
+      }
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [langPref, detectedLang]);
+
+  const setLang = (next: LanguagePref) => {
+    setLangPref(next);
     try {
       window.localStorage.setItem(STORAGE_KEYS.language, next);
     } catch {
       // Persisting the language preference is best-effort.
     }
+    const resolved = next === "auto" ? detectLanguage() : next;
+    if (next === "auto") setDetectedLang(resolved);
     try {
-      window.dispatchEvent(new CustomEvent("statswin:language-changed", { detail: { lang: next } }));
+      window.dispatchEvent(
+        new CustomEvent("statswin:language-changed", { detail: { lang: resolved } })
+      );
     } catch {
       // CustomEvent is unavailable in exotic environments; ignore.
     }
@@ -124,10 +173,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<I18nContextValue>(
     () => ({
       lang,
+      langPref,
+      detectedLang,
       setLang,
       t: (key: string, vars?: TemplateVars) => interpolate(resolveKey(lang, key), vars),
     }),
-    [lang]
+    [lang, langPref, detectedLang]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

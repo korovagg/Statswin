@@ -92,5 +92,7 @@
   "settings.import.replaceHint": "Удаляет текущую историю и оставляет только файл.",
   "settings.danger.title": "Опасная зона",
   "settings.language.hint": "Меняет язык интерфейса; данные не затрагиваются.",
-  "period.label": "Период"
+  "period.label": "Период",
+  "settings.language.auto": "Авто",
+  "settings.language.detected": "Определён: {lang}"
 }

@@ -92,5 +92,7 @@
   "settings.import.replaceHint": "Deletes current history and keeps only the file.",
   "settings.danger.title": "Danger zone",
   "settings.language.hint": "Changes the interface language; your data is untouched.",
-  "period.label": "Period"
+  "period.label": "Period",
+  "settings.language.auto": "Auto",
+  "settings.language.detected": "Detected: {lang}"
 }

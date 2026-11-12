@@ -34,7 +34,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--sw-gap);
-  padding: 16px 20px 32px;
+  /* Top padding reserves the fixed header: the measured height (set from
+   * app.tsx) because the bar wraps into two rows on narrow viewports. */
+  padding: calc(var(--statswin-header-height, 76px) + 12px) 20px 32px;
   color: var(--sw-text);
   font-family: var(--sw-font);
   /* Sticky header band: same surface as the page, no clipping. */
@@ -120,14 +122,18 @@
  * strip over the content. The background matches the page and blends with the
  * first card thanks to a soft gradient. */
 .topBarSticky {
-  position: sticky;
+  /* Anchored to the viewport: `sticky` only holds inside the same scroll
+   * container, and Spotify nests the app under transformed/scroll wrappers. */
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 40;
   isolation: isolate;
-  margin: -16px -20px 0;
-  padding: 16px 20px 12px;
-  /* Opaque band: Spotify paints a track-colour gradient behind its own scroll
-   * container, which showed through the old translucent header. */
+  margin: 0;
+  padding: 12px 20px;
+  /* Opaque band: Spotify paints a track-colour gradient behind the app, which
+   * showed through the old translucent header. */
   background: var(--sw-bg);
   box-shadow: inset 0 0 0 0 transparent;
   transition: box-shadow 160ms var(--sw-ease);

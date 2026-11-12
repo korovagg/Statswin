@@ -45,24 +45,6 @@ export default function App() {
   );
 }
 
-/**
- * Finds the element that actually scrolls for `node`.
- *
- * Spotify's main view is not the document scroller: content lives in an inner
- * container, so a plain `window.scroll` listener would never fire.
- */
-function findScrollParent(node: HTMLElement): HTMLElement | null {
-  let current: HTMLElement | null = node.parentElement;
-  while (current) {
-    const style = window.getComputedStyle(current);
-    const overflowY = style.overflowY;
-    const scrollable = overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay";
-    if (scrollable && current.scrollHeight > current.clientHeight) return current;
-    current = current.parentElement;
-  }
-  return document.scrollingElement instanceof HTMLElement ? document.scrollingElement : null;
-}
-
 function AppView() {
   const { t, lang } = useI18n();
   const [period, setPeriod] = useState<PeriodType>(PeriodType.Today);
@@ -118,30 +100,52 @@ function AppView() {
     [topRange.start, topRange.end, refreshTick]
   );
 
-  // The sticky header gains its separator shadow only once content scrolls
-  // underneath it, which keeps the resting page flat.
+  // The header is `position: fixed`, so:
+  //  - its real height is published as `--statswin-header-height` (the bar
+  //    wraps on narrow viewports, a constant padding would clip content);
+  //  - the separator shadow appears only once content scrolls underneath it.
   useEffect(() => {
-    const container = headerRef.current?.parentElement;
-    if (!container) return;
-    const scroller = findScrollParent(container);
-    // `document.scrollingElement` (the <html> element) is the page scroller;
-    // its own bounding rect moves with the scroll, so the boundary must be 0.
-    const isPageScroller = !scroller || scroller === document.scrollingElement;
-    const update = () => {
-      const headerTop = headerRef.current?.getBoundingClientRect().top ?? 0;
-      const boundary = isPageScroller ? 0 : scroller.getBoundingClientRect().top;
-      const scrolled = isPageScroller ? window.scrollY : scroller.scrollTop;
-      setHeaderStuck(headerTop <= boundary + 1 && scrolled > 0);
+    const header = headerRef.current;
+    const container = header?.parentElement;
+    if (!header || !container) return;
+
+    const syncHeight = () => {
+      container.style.setProperty("--statswin-header-height", `${Math.ceil(header.offsetHeight)}px`);
     };
-    // Window scroll events are not captured by listeners on the document
-    // element in every webview, so the page scroller listens on `window`.
-    const target: HTMLElement | Window = isPageScroller ? window : scroller;
-    target.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
+    const update = () => {
+      // The header is fixed to its containing block (the app container), so its
+      // own rect never moves. "Stuck" means the container's top edge left the
+      // visible area above it, which works for both the page and inner scrollers.
+      const containerTop = container.getBoundingClientRect().top;
+      setHeaderStuck(containerTop < -1);
+    };
+    const onScroll = () => update();
+
+    // Spotify nests the app under several scroll containers (the page, a
+    // `main-view-container`) and may swap them after mount. Listening in the
+    // capture phase on the page catches scroll events from any descendant,
+    // which is independent of the container that actually scrolls.
+    const targets: Array<EventTarget> = [window, document];
+    for (const target of targets) {
+      target.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    }
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => {
+        syncHeight();
+        update();
+      });
+      observer.observe(header);
+    }
+    window.addEventListener("resize", syncHeight);
+    syncHeight();
     update();
+
     return () => {
-      target.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
+      for (const target of targets) target.removeEventListener("scroll", onScroll, { capture: true });
+      window.removeEventListener("resize", syncHeight);
+      observer?.disconnect();
     };
   }, []);
 

@@ -34,7 +34,7 @@ type Tab = "data" | "general";
  * duplicate handling + summary) and a destructive zone with confirmation.
  */
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
-  const { t, lang, setLang } = useI18n();
+  const { t, langPref, detectedLang, setLang } = useI18n();
   const [tab, setTab] = useState<Tab>("general");
   const [confirmReset, setConfirmReset] = useState(false);
   const [pending, setPending] = useState<PendingImport | null>(null);
@@ -336,13 +336,32 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 <div className={styles.paneSectionTitle}>{t("settings.language.title")}</div>
                 <p className={styles.paneSectionText}>{t("settings.language.hint")}</p>
                 <div className={styles.segmentedControl} role="radiogroup" aria-label={t("settings.language.title")}>
+                  <label className={langPref === "auto" ? styles.segmentActive : styles.segment}>
+                    <input
+                      type="radio"
+                      name="statswin-lang"
+                      checked={langPref === "auto"}
+                      onChange={() => setLang("auto")}
+                    />
+                    {t("settings.language.auto")}
+                  </label>
                   {(["en", "ru"] as Locale[]).map((code) => (
-                    <label key={code} className={lang === code ? styles.segmentActive : styles.segment}>
-                      <input type="radio" name="statswin-lang" checked={lang === code} onChange={() => setLang(code)} />
+                    <label key={code} className={langPref === code ? styles.segmentActive : styles.segment}>
+                      <input
+                        type="radio"
+                        name="statswin-lang"
+                        checked={langPref === code}
+                        onChange={() => setLang(code)}
+                      />
                       {t(`settings.language.${code}`)}
                     </label>
                   ))}
                 </div>
+                {langPref === "auto" && (
+                  <p className={styles.paneSectionText}>
+                    {t("settings.language.detected", { lang: t(`settings.language.${detectedLang}`) })}
+                  </p>
+                )}
               </section>
             )}
           </div>

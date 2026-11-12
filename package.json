@@ -1,0 +1,53 @@
+{
+  "name": "statswin",
+  "displayName": "Statswin",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Detailed listening statistics for Spotify: listening time, tracks, artists, top lists and per-period charts.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/korovagg/Statswin.git"
+  },
+  "homepage": "https://github.com/korovagg/Statswin#readme",
+  "bugs": {
+    "url": "https://github.com/korovagg/Statswin/issues"
+  },
+  "author": "Korowin",
+  "license": "MIT",
+  "keywords": [
+    "spotify",
+    "spicetify",
+    "spicetify-custom-app",
+    "statistics",
+    "listening-stats"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "index.js",
+    "extension.js",
+    "style.css",
+    "manifest.json"
+  ],
+  "scripts": {
+    "build": "spicetify-creator",
+    "build-local": "spicetify-creator --out=dist --minify && node ./scripts/fix-encoding.js",
+    "watch": "spicetify-creator --watch",
+    "typecheck": "tsc --noEmit",
+    "build-release": "node ./scripts/build-release.js",
+    "release": "npm run build-local && npm run build-release",
+    "screenshots": "node ./scripts/screenshots.js"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "archiver": "^7.0.1",
+    "esbuild": "^0.25.12",
+    "playwright": "^1.65.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "spicetify-creator": "^1.0.17",
+    "typescript": "^5.7.3"
+  }
+}

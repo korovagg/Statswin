@@ -10,6 +10,20 @@ skipped tracks and top lists in one place.
 Statswin is a [Spicetify](https://spicetify.app) CustomApp plus a small extension that
 records what you listen to locally. Nothing leaves your machine.
 
+## What's new in 2.0
+
+- **New storage engine.** Detailed sessions are kept for 90 days; older days are
+  compacted into daily totals, so history no longer fills up Spotify's storage.
+  Existing data is migrated on first launch and the legacy reset flag is deleted.
+- **Accurate time tracking.** Listening time is measured by the player clock;
+  pauses, seeks and background tabs no longer add or drop minutes.
+- **Album covers** in the top lists, resolved from the current Spotify client.
+- **Reworked interface**: one-row header with a period menu, themed dropdowns,
+  permission-aware settings dialog, sticky header.
+- **Auto language.** Statswin follows the Spotify client language until you pick
+  one explicitly in Settings → General.
+- **Safer import/export** with merge/replace modes and duplicate skipping.
+
 ## Screenshots
 
 | Today | Year |

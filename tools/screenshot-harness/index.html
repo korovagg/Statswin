@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Statswin harness</title>
+    <link rel="stylesheet" href="../../dist/style.css" />
+    <style>
+      :root {
+        --spice-main: #121212;
+        --spice-card: #181818;
+        --spice-highlight: #1f1f1f;
+        --spice-sidebar: #242424;
+        --spice-text: #ffffff;
+        --spice-subtext: #b3b3b3;
+        --spice-button: #1db954;
+        --spice-button-active: #1ed760;
+        --spice-button-disabled: rgba(255, 255, 255, 0.12);
+        --spice-highlight-elevated: rgba(255, 255, 255, 0.08);
+        color-scheme: dark;
+      }
+      html[data-theme="light"] {
+        --spice-main: #ffffff;
+        --spice-card: #f6f6f6;
+        --spice-highlight: #ebebeb;
+        --spice-sidebar: #f0f0f0;
+        --spice-text: #121212;
+        --spice-subtext: #5c5c5c;
+        --spice-button: #1db954;
+        --spice-button-active: #169c46;
+        --spice-button-disabled: rgba(0, 0, 0, 0.16);
+        --spice-highlight-elevated: rgba(0, 0, 0, 0.06);
+        color-scheme: light;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--spice-main);
+        color: var(--spice-text);
+        font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script>
+      // Deterministic Playwright harness: seeds v3 storage with synthetic data,
+      // stubs the Spicetify client API, then mounts the built CustomApp bundle.
+      // `index.js` expects `react` / `react-dom` to resolve to `Spicetify.React*`,
+      // so those globals are provided before the bundle loads.
+      (function seedHarness() {
+        const params = new URLSearchParams(location.search);
+        const theme = params.get("theme") || "dark";
+        const lang = params.get("lang") || "en";
+        const seedV2 = params.get("v2") === "1";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.lang = lang;
+
+        localStorage.clear();
+        localStorage.setItem("statswin_language", lang);
+
+        const now = new Date();
+        const tracks = [
+          { uri: "spotify:track:harness1", name: "Neon Rain", artist: "Aurora Vale", artistUri: "spotify:artist:7Ao1" },
+          { uri: "spotify:track:harness2", name: "Glass Cities", artist: "Kite Season", artistUri: "spotify:artist:2Kt9" },
+          { uri: "spotify:track:harness3", name: "Slow Tide", artist: "Aurora Vale", artistUri: "spotify:artist:7Ao1" },
+          { uri: "spotify:track:harness4", name: "Midnight Transit", artist: "Nightline", artistUri: "spotify:artist:5Nl3" },
+        ];
+
+        const sessions = [];
+        const registry = {};
+        for (let day = 0; day < 70; day += 1) {
+          const dayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
+          for (let play = 0; play < 4; play += 1) {
+            const track = tracks[(day + play) % tracks.length];
+            const start = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), 8 + play * 2, 10).getTime();
+            const duration = play === 3 ? 8_000 : 180_000 + play * 45_000;
+            sessions.push({
+              id: `s${day}-${play}`,
+              start,
+              end: start + duration,
+              trackId: track.uri,
+              playId: `p${day}-${play}`,
+            });
+            registry[track.uri] = { name: track.name, artist: track.artist, artistUri: track.artistUri };
+          }
+        }
+
+        if (seedV2) {
+          localStorage.setItem(
+            "statswin.sessions",
+            JSON.stringify(
+              sessions.map((session) => ({
+                start: session.start,
+                end: session.end,
+                playId: session.playId,
+                track: { uri: session.trackId, ...registry[session.trackId] },
+              }))
+            )
+          );
+        } else {
+          localStorage.setItem("statswin.schema", "3");
+          localStorage.setItem("statswin.sessions.v3", JSON.stringify(sessions));
+          localStorage.setItem("statswin.tracks.v3", JSON.stringify(registry));
+          localStorage.setItem("statswin.dailyRollups.v3", "{}");
+        }
+
+        const currentTrack = {
+          uri: tracks[0].uri,
+          name: tracks[0].name,
+          artist_name: tracks[0].artist,
+          artists: [{ uri: tracks[0].artistUri, name: tracks[0].artist }],
+          duration: 213_000,
+          album: { images: [] },
+        };
+
+        window.Spicetify = {
+          Player: {
+            data: { track: currentTrack, duration: 213_000, position: 61_000 },
+            isPlaying: () => true,
+            getProgress: () => 61_000,
+            addEventListener: () => {},
+          },
+          Platform: {
+            PlayerAPI: { _state: { item: currentTrack, isPlaying: true, position: 61_000 } },
+            History: { push: (entry) => console.log("navigate", entry) },
+          },
+          URI: { fromString: () => ({ toURLPath: () => "/track/harness1" }) },
+          showNotification: () => {},
+        };
+      })();
+    </script>
+    <script>
+      // Bundled React reads process.env.NODE_ENV at import time.
+      window.process = { env: { NODE_ENV: "production" } };
+    </script>
+    <script src="vendor/react.js"></script>
+    <script>
+      // esbuild with JSX automatic emits `require("react/jsx-runtime")`; supply it.
+      if (!window.require) window.require = () => ({});
+      if (window.React?.jsxRuntime) {
+        window.require = (id) => {
+          if (id === "react") return window.React;
+          if (id === "react-dom") return window.ReactDOM;
+          if (id === "react/jsx-runtime") return window.React.jsxRuntime;
+          if (id === "react/jsx-dev-runtime") return window.React.jsxRuntime;
+          throw new Error(`Unexpected require: ${id}`);
+        };
+      }
+      if (!window.Spicetify.React) window.Spicetify.React = window.React;
+      if (!window.Spicetify.ReactDOM) window.Spicetify.ReactDOM = window.ReactDOM;
+    </script>
+    <script src="../../dist/index.js"></script>
+    <script>
+      // Mirrors Spicetify's generated mount code (`render()` returns <App />).
+      try {
+        const element = window.React.createElement(window.statswin.default);
+        window.ReactDOM.createRoot(document.getElementById("root")).render(element);
+      } catch (error) {
+        console.error("harness: failed to mount Statswin", error);
+      }
+    </script>
+  </body>
+</html>

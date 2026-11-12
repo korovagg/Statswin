@@ -1,5 +1,5 @@
 import React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./css/app.module.scss";
 import FilterBar from "./components/FilterBar";
 import { PeriodType, PeriodRange } from "./types/period";
@@ -45,6 +45,24 @@ export default function App() {
   );
 }
 
+/**
+ * Finds the element that actually scrolls for `node`.
+ *
+ * Spotify's main view is not the document scroller: content lives in an inner
+ * container, so a plain `window.scroll` listener would never fire.
+ */
+function findScrollParent(node: HTMLElement): HTMLElement | null {
+  let current: HTMLElement | null = node.parentElement;
+  while (current) {
+    const style = window.getComputedStyle(current);
+    const overflowY = style.overflowY;
+    const scrollable = overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay";
+    if (scrollable && current.scrollHeight > current.clientHeight) return current;
+    current = current.parentElement;
+  }
+  return document.scrollingElement instanceof HTMLElement ? document.scrollingElement : null;
+}
+
 function AppView() {
   const { t, lang } = useI18n();
   const [period, setPeriod] = useState<PeriodType>(PeriodType.Today);
@@ -53,6 +71,8 @@ function AppView() {
   const [liveMs, setLiveMs] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [headerStuck, setHeaderStuck] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
 
   const range = useMemo(() => resolvePeriodRange(period, customRange), [period, customRange]);
 
@@ -97,6 +117,33 @@ function AppView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [topRange.start, topRange.end, refreshTick]
   );
+
+  // The sticky header gains its separator shadow only once content scrolls
+  // underneath it, which keeps the resting page flat.
+  useEffect(() => {
+    const container = headerRef.current?.parentElement;
+    if (!container) return;
+    const scroller = findScrollParent(container);
+    // `document.scrollingElement` (the <html> element) is the page scroller;
+    // its own bounding rect moves with the scroll, so the boundary must be 0.
+    const isPageScroller = !scroller || scroller === document.scrollingElement;
+    const update = () => {
+      const headerTop = headerRef.current?.getBoundingClientRect().top ?? 0;
+      const boundary = isPageScroller ? 0 : scroller.getBoundingClientRect().top;
+      const scrolled = isPageScroller ? window.scrollY : scroller.scrollTop;
+      setHeaderStuck(headerTop <= boundary + 1 && scrolled > 0);
+    };
+    // Window scroll events are not captured by listeners on the document
+    // element in every webview, so the page scroller listens on `window`.
+    const target: HTMLElement | Window = isPageScroller ? window : scroller;
+    target.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    update();
+    return () => {
+      target.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   useEffect(() => {
     // Run the v2-to-v3 migration before anything reads storage, then refresh.
@@ -149,7 +196,11 @@ function AppView() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.topBar}>
+      <header
+        ref={headerRef}
+        className={`${styles.topBar} ${styles.topBarSticky}`}
+        data-stuck={headerStuck ? "true" : "false"}
+      >
         <div className={styles.brand}>
           <span className={styles.brandMark} aria-hidden>
             <AppIcon />

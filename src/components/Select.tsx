@@ -45,9 +45,11 @@ export function Select({ value, options, onChange, ariaLabel, size = "default", 
     if (!open) return;
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const menuWidth = Math.max(rect.width, size === "small" ? 140 : 160);
+    // The popover hugs its label, never narrower than the trigger, and is
+    // clamped to the viewport so it cannot run off-screen.
+    const menuWidth = Math.min(200, Math.max(rect.width, 120));
     const left = Math.min(Math.max(8, rect.right - menuWidth), window.innerWidth - menuWidth - 8);
-    setMenuPosition({ top: rect.bottom + 6, left, width: rect.width });
+    setMenuPosition({ top: rect.bottom + 6, left, width: menuWidth });
   }, [open, size]);
 
   useEffect(() => {
@@ -124,8 +126,8 @@ export function Select({ value, options, onChange, ariaLabel, size = "default", 
               position: "fixed",
               top: menuPosition.top,
               left: menuPosition.left,
-              minWidth: Math.max(menuPosition.width, size === "small" ? 140 : 160),
-              maxWidth: Math.min(320, window.innerWidth - menuPosition.left - 8),
+              minWidth: menuPosition.width,
+              maxWidth: Math.min(200, window.innerWidth - menuPosition.left - 8),
             }}
           >
           {options.map((option, index) => {

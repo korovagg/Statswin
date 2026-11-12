@@ -2,101 +2,104 @@ Param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Function: Write-Info
-# Prints informational message in cyan.
+$Owner = 'korovagg'
+$Repo = 'Statswin'
+
 function Write-Info { param($Message) Write-Host $Message -ForegroundColor Cyan }
-
-# Function: Write-Ok
-# Prints success message in green.
 function Write-Ok { param($Message) Write-Host $Message -ForegroundColor Green }
-
-# Function: Write-Err
-# Prints error message in red.
+function Write-Warn { param($Message) Write-Host $Message -ForegroundColor Yellow }
 function Write-Err { param($Message) Write-Host $Message -ForegroundColor Red }
 
-Write-Info "Checking Spicetify..."
+Write-Info 'Checking Spicetify...'
 $spiceDir = Join-Path $env:APPDATA 'spicetify'
 if (!(Test-Path $spiceDir)) {
   Write-Err 'Spicetify not found. Please install Spicetify first: https://spicetify.app/docs/getting-started'
   exit 1
 }
 
+$spicetifyCmd = Get-Command spicetify -ErrorAction SilentlyContinue
+if (-not $spicetifyCmd) {
+  Write-Warn 'spicetify CLI not found in PATH; the app files will be installed but not activated.'
+}
+
 $appsDir = Join-Path $spiceDir 'CustomApps'
 New-Item -ItemType Directory -Force -Path $appsDir | Out-Null
-
 $targetDir = Join-Path $appsDir 'statswin'
-if (Test-Path $targetDir) {
-  Write-Info "Removing previous installation..."
-  Remove-Item -Recurse -Force $targetDir
-}
 
-# Function: Get-LatestReleaseZipUrl
-# Returns browser_download_url for latest release zip asset, or fallback URL.
 function Get-LatestReleaseZipUrl {
-  param(
-    [string]$Owner,
-    [string]$Repo,
-    [string]$AssetPrefix = "statswin"
-  )
-  try {
-    $apiUrl = "https://api.github.com/repos/$Owner/$Repo/releases/latest"
-    $releaseInfo = Invoke-RestMethod -Uri $apiUrl -ErrorAction Stop
-    $asset = $releaseInfo.assets | Where-Object { $_.name -like "$AssetPrefix*.zip" -and $_.name -notlike "*source*" } | Select-Object -First 1
-    if ($asset) { return $asset.browser_download_url }
-  } catch {}
-  return "https://github.com/$Owner/$Repo/releases/download/1.0.1/statswin-v1.0.1.zip"
+  param([string]$Owner, [string]$Repo)
+  $apiUrl = "https://api.github.com/repos/$Owner/$Repo/releases/latest"
+  $releaseInfo = Invoke-RestMethod -Uri $apiUrl -Headers @{ 'User-Agent' = 'statswin-installer' } -ErrorAction Stop
+  $asset = $releaseInfo.assets |
+    Where-Object { $_.name -like 'statswin-*.zip' -and $_.name -notlike '*source*' } |
+    Select-Object -First 1
+  if ($asset) { return $asset.browser_download_url }
+  return $null
 }
 
-Write-Info "Downloading latest Statswin release..."
-$tempDir = Join-Path $env:TEMP "statswin-install"
-New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
-$zipPath = Join-Path $tempDir "statswin.zip"
-# Prefer explicit release URL via environment override; fallback to latest API
-# Function-level comment: Selects download URL (ENV override > API > pinned fallback).
-function Select-DownloadUrl {
-  param(
-    [string]$Owner = "korovagg",
-    [string]$Repo = "statswin"
-  )
-  $envUrl = $env:STATSWIN_RELEASE_URL
-  if ($envUrl -and -not [string]::IsNullOrWhiteSpace($envUrl)) {
-    return $envUrl
+$downloadUrl = $env:STATSWIN_RELEASE_URL
+if ([string]::IsNullOrWhiteSpace($downloadUrl)) {
+  Write-Info 'Resolving the latest Statswin release...'
+  try {
+    $downloadUrl = Get-LatestReleaseZipUrl -Owner $Owner -Repo $Repo
+  } catch {
+    $downloadUrl = $null
   }
-  return Get-LatestReleaseZipUrl -Owner $Owner -Repo $Repo -AssetPrefix "statswin"
 }
-$downloadUrl = Select-DownloadUrl -Owner "korovagg" -Repo "statswin"
+if ([string]::IsNullOrWhiteSpace($downloadUrl)) {
+  Write-Err "Could not resolve a release asset for $Owner/$Repo."
+  Write-Err 'Set STATSWIN_RELEASE_URL to a direct .zip URL and re-run the installer,'
+  Write-Err "or download the latest release manually: https://github.com/$Owner/$Repo/releases"
+  exit 1
+}
+
+$tempDir = Join-Path $env:TEMP ("statswin-install-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
+New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+$zipPath = Join-Path $tempDir 'statswin.zip'
 
 try {
-  Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -ErrorAction Stop
-  Write-Ok "Downloaded: $downloadUrl"
+  Write-Info "Downloading $downloadUrl"
+  Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -ErrorAction Stop
+  Write-Ok 'Downloaded release'
 } catch {
+  Remove-Item -Recurse -Force $tempDir -ErrorAction SilentlyContinue
   Write-Err "Failed to download release: $downloadUrl"
   exit 1
 }
 
-Write-Info "Extracting..."
-Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
 try {
-  $statswinDir = Get-ChildItem -Path $tempDir -Directory | Where-Object { $_.Name -eq 'statswin' } | Select-Object -First 1
-} catch { $statswinDir = $null }
-New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
-if ($statswinDir) {
-  Get-ChildItem -Path $statswinDir.FullName -Force | ForEach-Object {
-    Move-Item -Path $_.FullName -Destination $targetDir -Force
+  Write-Info 'Extracting...'
+  $extractDir = Join-Path $tempDir 'extract'
+  Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+
+  $sourceDir = Join-Path $extractDir 'statswin'
+  if (!(Test-Path $sourceDir)) {
+    $candidate = Get-ChildItem -Path $extractDir -Directory | Select-Object -First 1
+    if ($candidate) { $sourceDir = $candidate.FullName }
   }
-} else {
-  $anyDir = Get-ChildItem -Path $tempDir -Directory | Select-Object -First 1
-  if ($anyDir) {
-    Get-ChildItem -Path $anyDir.FullName -Force | ForEach-Object {
-      Move-Item -Path $_.FullName -Destination $targetDir -Force
-    }
-  } else {
-    Get-ChildItem $tempDir -File | ForEach-Object { Move-Item -Path $_.FullName -Destination $targetDir -Force }
+  if (!(Test-Path (Join-Path $sourceDir 'index.js'))) {
+    Write-Err 'The downloaded archive does not contain statswin/index.js.'
+    exit 1
   }
+
+  if (Test-Path $targetDir) {
+    Write-Info 'Removing previous installation...'
+    Remove-Item -Recurse -Force $targetDir
+  }
+  New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+  Copy-Item -Path (Join-Path $sourceDir '*') -Destination $targetDir -Recurse -Force
+  Write-Ok "Installed into $targetDir"
+} finally {
+  Remove-Item -Recurse -Force $tempDir -ErrorAction SilentlyContinue
 }
 
-Write-Info "Configuring Spicetify..."
-spicetify config custom_apps statswin
-spicetify apply
-
-Write-Ok 'Statswin installed as a Spicetify CustomApp.'
+if ($spicetifyCmd) {
+  Write-Info 'Configuring Spicetify...'
+  spicetify config custom_apps statswin
+  spicetify apply
+  Write-Ok 'Statswin installed as a Spicetify CustomApp. Restart Spotify.'
+} else {
+  Write-Warn 'Run these commands manually once the Spicetify CLI is available:'
+  Write-Warn '  spicetify config custom_apps statswin'
+  Write-Warn '  spicetify apply'
+}

@@ -1,0 +1,733 @@
+/* Statswin — Product Spotify-native styling.
+ *
+ * Every colour goes through a `--spice-*` variable first and falls back to a
+ * local `--sw-*` token, so the app follows the active Spicetify theme (including
+ * light themes like Text and Nord Light) instead of hard-coding dark values.
+ */
+
+:root {
+  /* Fallbacks mirror Spotify's default dark palette. */
+  --sw-bg: var(--spice-main, #121212);
+  --sw-surface: var(--spice-card, #181818);
+  --sw-surface-2: var(--spice-highlight, #1f1f1f);
+  --sw-surface-3: var(--spice-sidebar, #242424);
+  --sw-border: var(--spice-button-disabled, rgba(255, 255, 255, 0.12));
+  --sw-text: var(--spice-text, #ffffff);
+  --sw-muted: var(--spice-subtext, #b3b3b3);
+  --sw-accent: var(--spice-button, #1db954);
+  --sw-accent-strong: var(--spice-button-active, #1ed760);
+  --sw-highlight: var(--spice-highlight-elevated, rgba(255, 255, 255, 0.08));
+  --sw-chart-grid: var(--spice-button-disabled, rgba(255, 255, 255, 0.16));
+  --sw-positive: #22c55e;
+  --sw-negative: #f15e6c;
+  --sw-danger-border: #7a1f1f;
+
+  --sw-radius-sm: 4px;
+  --sw-radius: 8px;
+  --sw-radius-lg: 12px;
+  --sw-gap: 16px;
+  --sw-font: Inter, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-gap);
+  padding: 16px 20px 32px;
+  color: var(--sw-text);
+  font-family: var(--sw-font);
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--sw-text);
+}
+
+.version {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sw-muted);
+  margin-left: 6px;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--sw-muted);
+}
+
+.subtitle a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.subtitle a:hover,
+.subtitle a:focus-visible {
+  text-decoration: underline;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+/* ---------- Filter bar ---------- */
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.filterButtons,
+.filterRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filterButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--sw-surface-2);
+  color: var(--sw-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.filterButton:hover {
+  background: var(--sw-highlight);
+}
+
+.filterButton:active {
+  background: var(--sw-surface-3);
+}
+
+.filterButton:focus-visible,
+.iconButton:focus-visible,
+.topRow:focus-visible,
+.topToggle:focus-visible,
+.sortSelect:focus-visible,
+.modalClose:focus-visible,
+.dangerButton:focus-visible,
+.storageBannerAction:focus-visible,
+.storageBannerClose:focus-visible {
+  outline: 2px solid var(--sw-accent-strong);
+  outline-offset: 2px;
+}
+
+.filterActive {
+  background: var(--sw-text);
+  color: var(--sw-bg);
+}
+
+.filterActive:hover {
+  background: var(--sw-text);
+  opacity: 0.9;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sw-muted);
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.iconButton:hover {
+  color: var(--sw-text);
+  background: var(--sw-highlight);
+}
+
+.iconButton svg,
+.filterButton svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.filterPanel {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.dateInputs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dateInputs label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--sw-muted);
+}
+
+.dateInputs input[type="date"] {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--sw-radius-sm);
+  border: 1px solid var(--sw-border);
+  background: var(--sw-surface);
+  color: var(--sw-text);
+  font: inherit;
+  color-scheme: light dark;
+}
+
+/* ---------- Layout ---------- */
+
+.main {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sw-gap);
+}
+
+.card {
+  background: var(--sw-surface);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  padding: 16px;
+}
+
+.heroSection,
+.chartSection,
+.extraStatsSection {
+  grid-column: 1 / -1;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.heroLabel {
+  font-size: 12px;
+  color: var(--sw-muted);
+}
+
+.heroValue {
+  font-size: 56px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.heroFooter {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.compareLine {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sw-muted);
+}
+
+.indicatorUp {
+  color: var(--sw-positive);
+}
+
+.indicatorDown {
+  color: var(--sw-negative);
+}
+
+.indicatorFlat {
+  color: var(--sw-muted);
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  background: var(--sw-surface);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius);
+  padding: 12px 14px;
+}
+
+.tilePrimaryValue {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tileLabel {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--sw-muted);
+}
+
+.rollupNote {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--sw-muted);
+}
+
+/* ---------- Chart ---------- */
+
+.chartWrapper {
+  width: 100%;
+  min-height: 240px;
+}
+
+.chartTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.chartUnit {
+  font-weight: 400;
+  color: var(--sw-muted);
+}
+
+.emptyChart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  border-radius: var(--sw-radius);
+  background: var(--sw-surface-2);
+  color: var(--sw-muted);
+  font-size: 13px;
+}
+
+/* ---------- Top lists ---------- */
+
+.topSection {
+  min-width: 0;
+}
+
+.topInner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.topHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.topTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.dateRangeSmall {
+  font-size: 11px;
+  color: var(--sw-muted);
+}
+
+.sortSelect {
+  margin-left: auto;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: var(--sw-radius-sm);
+  border: 1px solid var(--sw-border);
+  background: var(--sw-surface-2);
+  color: var(--sw-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  color-scheme: light dark;
+}
+
+.topList {
+  display: grid;
+  gap: 6px;
+}
+
+.topRow {
+  display: grid;
+  grid-template-columns: 40px 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--sw-radius);
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.topRow:hover {
+  background: var(--sw-surface-2);
+}
+
+.topAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--sw-radius-sm);
+  overflow: hidden;
+  background: var(--sw-surface-2);
+}
+
+.topAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.topAvatarFallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--sw-surface-2), var(--sw-surface-3));
+}
+
+.topIndex {
+  font-size: 13px;
+  color: var(--sw-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.topMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topPrimary {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topSecondary {
+  font-size: 12px;
+  color: var(--sw-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topCounters {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.topCounter {
+  min-width: 28px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.topTime {
+  min-width: 56px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--sw-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.emptyState {
+  font-size: 13px;
+  color: var(--sw-muted);
+  padding: 8px 0;
+}
+
+.topToggle {
+  justify-self: start;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--sw-border);
+  background: transparent;
+  color: var(--sw-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.topToggle:hover {
+  background: var(--sw-surface-2);
+}
+
+/* ---------- Storage banner ---------- */
+
+.storageBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--sw-radius);
+  border: 1px solid var(--sw-danger-border);
+  background: var(--sw-surface-2);
+  font-size: 13px;
+}
+
+.storageBannerText {
+  flex: 1;
+}
+
+.storageBannerAction {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: none;
+  background: var(--sw-accent);
+  color: #000;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.storageBannerClose {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sw-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.storageBannerClose:hover {
+  color: var(--sw-text);
+}
+
+/* ---------- Modals ---------- */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+}
+
+.modal {
+  position: relative;
+  width: min(520px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 20px;
+  border-radius: var(--sw-radius-lg);
+  background: var(--sw-surface);
+  border: 1px solid var(--sw-border);
+  color: var(--sw-text);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.modalTitle {
+  margin: 0 24px 12px 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.modalText {
+  margin: 0;
+  color: var(--sw-muted);
+  line-height: 1.5;
+}
+
+.modalActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modalSectionTitle {
+  margin-top: 4px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.modalClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--sw-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modalClose:hover {
+  color: var(--sw-text);
+  background: var(--sw-surface-2);
+}
+
+.dangerButton {
+  align-self: flex-start;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--sw-danger-border);
+  background: transparent;
+  color: var(--sw-negative);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dangerButton:hover {
+  background: rgba(241, 94, 108, 0.12);
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.radioGroup label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.messageError {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--sw-radius-sm);
+  background: rgba(241, 94, 108, 0.12);
+  color: var(--sw-negative);
+}
+
+.messageInfo {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-surface-2);
+  color: var(--sw-text);
+}
+
+.aboutHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.aboutHeader svg {
+  width: 32px;
+  height: 32px;
+  fill: var(--sw-accent);
+}
+
+.aboutName {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heroValue {
+    font-size: 44px;
+  }
+}
+
+@media (max-width: 560px) {
+  .container {
+    padding: 12px;
+  }
+
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Motion preferences ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .filterButton,
+  .iconButton,
+  .topRow {
+    transition: none;
+  }
+}

@@ -152,7 +152,7 @@ export function getPreviousRange(range: PeriodRange, period: PeriodType): Period
     default: {
       const length = Math.max(DAY_MS, range.end - range.start + 1);
       const end = range.start - 1;
-      return { start: end - length + 1, end };
+      return { start: Math.max(0, end - length + 1), end };
     }
   }
 }

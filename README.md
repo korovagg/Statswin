@@ -94,6 +94,7 @@ npm ci                 # install dependencies
 npm run typecheck      # tsc --noEmit
 npm run build-local    # build dist/ (index.js, extension.js, style.css, manifest.json)
 npm run build-release  # package release/statswin + release/statswin-v<version>.zip
+npm run test:counters  # counter arithmetic checks (plays, skips, ranges)
 npm run screenshots    # optional: regenerate docs/screens (needs playwright)
 ```
 

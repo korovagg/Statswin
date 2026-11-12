@@ -18,6 +18,8 @@ import { normalizeCoverUrl, pickCoverFromImages } from "../utils/covers";
 const TICK_MS = 1000;
 const SEEK_BACK_THRESHOLD_MS = 1500;
 const SEEK_FORWARD_THRESHOLD_MS = 5000;
+/** Segments below this are dropped as noise (sub-second UI jitter). */
+const MIN_SEGMENT_MS = 100;
 
 export type TrackerFinalizeReason = "track_change" | "pause" | "stop" | "seek" | "unmount" | "hidden";
 
@@ -237,6 +239,24 @@ function getProgressMs(durationHint: number | null): number | null {
     if (!spicetify) return null;
     const duration = durationHint ?? getDurationMs();
 
+    // Current clients keep the truth in `positionAsOfTimestamp` + `timestamp`;
+    // `Player.getProgress()` and `data.position` are stale or missing there.
+    const playerState = asRecord(spicetify.Platform?.PlayerAPI?._state);
+    const dataState = asRecord(spicetify.Player.data);
+    for (const state of [playerState, dataState]) {
+      if (!state) continue;
+      const basePosition = asNumber(state.positionAsOfTimestamp) ?? asNumber(state.position);
+      if (basePosition == null) continue;
+      let computed = basePosition;
+      const timestamp = asNumber(state.timestamp);
+      const paused = typeof state.isPaused === "boolean" ? state.isPaused : !isPlaying();
+      if (!paused && timestamp != null) {
+        computed += Math.max(0, Math.min(SEEK_FORWARD_THRESHOLD_MS * 4, Date.now() - timestamp));
+      }
+      if (duration && computed > duration) computed = duration;
+      return Math.round(computed);
+    }
+
     const fromPlayer = spicetify.Player.getProgress?.();
     if (typeof fromPlayer === "number" && Number.isFinite(fromPlayer)) {
       // Some versions return a 0..1 fraction instead of milliseconds.
@@ -244,26 +264,8 @@ function getProgressMs(durationHint: number | null): number | null {
       if (fromPlayer > 1) return Math.round(fromPlayer);
     }
 
-    const position = spicetify.Player.data?.position;
-    if (typeof position === "number" && Number.isFinite(position)) return Math.round(position);
-
-    const state = asRecord(spicetify.Platform?.PlayerAPI?._state);
-    if (state) {
-      const basePosition =
-        asNumber(state.position) ?? asNumber(state.positionAsOfTimestamp);
-      if (basePosition != null) {
-        let computed = basePosition;
-        const timestamp = asNumber(state.timestamp);
-        const playingFlag =
-          typeof state.isPlaying === "boolean" ? state.isPlaying : isPlaying();
-        if (playingFlag && timestamp != null) {
-          computed += Math.max(0, Date.now() - timestamp);
-        }
-        if (duration && computed > duration) computed = duration;
-        return Math.round(computed);
-      }
-    }
-    return null;
+    const position = asNumber(dataState?.position);
+    return position == null ? null : Math.round(position);
   } catch {
     return null;
   }
@@ -290,6 +292,8 @@ export function createListeningTracker(): ListeningTracker {
   let segmentAccumMs = 0;
   let lastTickPerf = 0;
   let lastProgressMs: number | null = null;
+  /** Position the next tick is expected to reach if playback was continuous. */
+  let expectedProgressMs: number | null = null;
   let lastPlaying = false;
   let attached = false;
 
@@ -303,15 +307,22 @@ export function createListeningTracker(): ListeningTracker {
     }
   }
 
-  function openSegment(): void {
+  /**
+   * Opens a recording segment.
+   *
+   * `newPlay` is true whenever the logical play changes (track change, resume
+   * after a pause, restart from the beginning); a seek keeps the same play.
+   */
+  function openSegment(newPlay: boolean): void {
     if (segmentOpen) return;
-    if (!currentPlayId) currentPlayId = generatePlayId();
+    if (newPlay || !currentPlayId) currentPlayId = generatePlayId();
     segmentOpen = true;
     segmentStartedWallMs = Date.now();
     segmentAccumMs = 0;
     lastTickPerf = performance.now();
     lastProgressMs = getProgressMs(getDurationMs());
-    logEvent("segment_open", { uri: currentTrack?.uri });
+    expectedProgressMs = lastProgressMs;
+    logEvent("segment_open", { uri: currentTrack?.uri, newPlay });
   }
 
   function finalizeSegment(reason: TrackerFinalizeReason): void {
@@ -321,7 +332,9 @@ export function createListeningTracker(): ListeningTracker {
       return;
     }
     const accrued = Math.max(0, Math.round(segmentAccumMs));
-    if (accrued >= 500) {
+    // Even sub-second segments are stored: a quick skip still has to count as a
+    // play, and plays are grouped by `playId` later.
+    if (accrued >= MIN_SEGMENT_MS) {
       const session: Session = {
         start: segmentStartedWallMs,
         end: segmentStartedWallMs + accrued,
@@ -334,26 +347,37 @@ export function createListeningTracker(): ListeningTracker {
     segmentOpen = false;
     segmentAccumMs = 0;
     lastTickPerf = 0;
+    expectedProgressMs = null;
   }
 
   /**
-   * Detects seeks by comparing the freshly read position with the previous one.
+   * Detects seeks by comparing the reported position with where playback should
+   * have been. Works around clients that stop advancing `lastProgressMs`.
    */
   function handleSeekIfAny(currentProgressMs: number | null): boolean {
-    if (currentProgressMs == null || lastProgressMs == null) {
-      lastProgressMs = currentProgressMs;
+    if (currentProgressMs == null) return false;
+    const reference = expectedProgressMs ?? lastProgressMs;
+    lastProgressMs = currentProgressMs;
+
+    if (reference == null || !segmentOpen) {
+      expectedProgressMs = currentProgressMs;
       return false;
     }
-    const delta = currentProgressMs - lastProgressMs;
+
+    const delta = currentProgressMs - reference;
     const isSeek = delta < -SEEK_BACK_THRESHOLD_MS || delta > SEEK_FORWARD_THRESHOLD_MS;
-    lastProgressMs = currentProgressMs;
-    if (!isSeek || !segmentOpen) return false;
+    if (!isSeek) {
+      expectedProgressMs = currentProgressMs;
+      return false;
+    }
 
     const sameTrack = getCurrentTrackInfo()?.uri === currentTrack?.uri;
     finalizeSegment("seek");
-    // Keep the same playId: a seek is not a new play.
-    if (isPlaying() && sameTrack) openSegment();
+    // A seek is not a new play: same track, same playId.
+    if (isPlaying() && sameTrack) openSegment(false);
     logEvent("seek_detected", { delta });
+    // The position restarted at the new offset.
+    expectedProgressMs = getProgressMs(getDurationMs());
     return true;
   }
 
@@ -364,8 +388,9 @@ export function createListeningTracker(): ListeningTracker {
     currentTrack = track;
     currentPlayId = generatePlayId();
     lastProgressMs = getProgressMs(getDurationMs());
+    expectedProgressMs = lastProgressMs;
     segmentOpen = false;
-    if (isPlaying()) openSegment();
+    if (isPlaying()) openSegment(false);
   }
 
   /**
@@ -392,10 +417,13 @@ export function createListeningTracker(): ListeningTracker {
     currentTrack = { ...currentTrack, ...track, imageUrl: track.imageUrl ?? currentTrack.imageUrl };
 
     if (playing) {
-      if (!segmentOpen) openSegment();
+      // Resuming after a pause starts a new play (Spotify counts it as one).
+      if (!segmentOpen) openSegment(!lastPlaying);
       const nowPerf = performance.now();
       if (lastTickPerf > 0) {
-        const delta = Math.max(0, Math.min(TICK_MS * 5, Math.round(nowPerf - lastTickPerf)));
+        // A longer gap means the timer was throttled (background tab); only the
+        // last two ticks are trusted, the rest is derived from the player clock.
+        const delta = Math.max(0, Math.min(TICK_MS * 2, Math.round(nowPerf - lastTickPerf)));
         if (delta > 0) {
           segmentAccumMs += delta;
           dispatchTick(delta, segmentAccumMs);
@@ -406,6 +434,7 @@ export function createListeningTracker(): ListeningTracker {
     } else {
       if (segmentOpen && lastPlaying) finalizeSegment("pause");
       lastProgressMs = getProgressMs(getDurationMs());
+      expectedProgressMs = lastProgressMs;
     }
     lastPlaying = playing;
   }
@@ -443,10 +472,15 @@ export function createListeningTracker(): ListeningTracker {
 
   function onVisibilityChange(): void {
     if (document.visibilityState === "hidden") {
-      // Player position can jump while the tab is hidden; close the segment so
-      // no downtime is ever accrued.
-      if (segmentOpen) finalizeSegment("hidden");
+      // Recording continues while hidden (music keeps playing). Timers get
+      // throttled, so the duration is rebuilt from the player clock on return.
       flushStorage();
+    } else {
+      // Re-sync the expected position before resuming increments.
+      lastProgressMs = getProgressMs(getDurationMs());
+      expectedProgressMs = lastProgressMs;
+      lastTickPerf = performance.now();
+      lastPlaying = isPlaying();
     }
   }
 

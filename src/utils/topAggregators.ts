@@ -39,10 +39,11 @@ export function groupPlays(sessions: Session[], thresholdMs = SKIP_THRESHOLD_MS)
 }
 
 /**
- * Counts unique tracks and artists and the number of skipped plays.
+ * Counts unique tracks, unique artists and skipped plays.
  *
- * Only non-skipped plays contribute to the track/artist sets, matching the
- * previous behaviour of the extra metrics row.
+ * Skips are still "listened to" for the catalog counters (a skipped track was
+ * heard, just briefly), while `skippedCount` reports them separately. This
+ * matches what users expect from a "Tracks" tile next to "Skipped".
  */
 export function aggregateTotals(sessions: Session[], thresholdMs = SKIP_THRESHOLD_MS): {
   tracksCount: number;
@@ -55,10 +56,7 @@ export function aggregateTotals(sessions: Session[], thresholdMs = SKIP_THRESHOL
   let skippedCount = 0;
 
   for (const group of groups.values()) {
-    if (group.skipped) {
-      skippedCount += 1;
-      continue;
-    }
+    if (group.skipped) skippedCount += 1;
     for (const session of group.sessions) {
       if (session.track.uri) trackUris.add(session.track.uri);
       const artistKey = artistIdentity(session.track);
@@ -148,5 +146,5 @@ export function aggregateTop(sessions: Session[], kind: TopKind, sort: TopSort):
   } else {
     result.sort((a, b) => b.ms - a.ms || b.plays - a.plays || a.name.localeCompare(b.name));
   }
-  return result.slice(0, 50);
+  return result.slice(0, 200);
 }

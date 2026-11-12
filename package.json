@@ -37,7 +37,8 @@
     "typecheck": "tsc --noEmit",
     "build-release": "node ./scripts/build-release.js",
     "release": "npm run build-local && npm run build-release",
-    "screenshots": "node ./scripts/screenshots.js"
+    "screenshots": "node ./scripts/screenshots.js",
+    "test:counters": "node --test scripts/counters.test.cjs"
   },
   "devDependencies": {
     "@types/react": "^19.2.7",

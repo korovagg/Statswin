@@ -248,6 +248,21 @@ function rollupFromSessions(sessions: Session[]): Record<string, DailyRollup> {
   return result;
 }
 
+
+/**
+ * Share of a daily rollup that falls inside [from, to].
+ *
+ * Rollups store a per-day total, so a partially covered day must contribute a
+ * proportional amount; adding the full overlap would inflate boundary days.
+ */
+function rollupOverlapMs(dayStart: number, dayMs: number, from: number, to: number): number {
+  const dayEnd = dayStart + DAY_MS - 1;
+  if (dayEnd < from || dayStart > to) return 0;
+  if (dayStart >= from && dayEnd <= to) return dayMs;
+  const covered = Math.min(dayEnd, to) - Math.max(dayStart, from) + 1;
+  return Math.round((covered / DAY_MS) * dayMs);
+}
+
 /**
  * Stable identity for an artist, tolerant of case variants.
  */
@@ -675,12 +690,7 @@ export function getTotalMsInRange(start: number, end: number): number {
     if (!Number.isFinite(dayStart)) continue;
     const dayEnd = dayStart + DAY_MS - 1;
     if (dayEnd < minStart || dayStart > end) continue;
-    if (dayStart >= minStart && dayEnd <= end) {
-      total += rollup.ms;
-    } else {
-      const overlap = Math.min(dayEnd, end) - Math.max(dayStart, minStart) + 1;
-      total += Math.max(0, overlap);
-    }
+    total += rollupOverlapMs(dayStart, rollup.ms, minStart, end);
   }
   for (const session of sessions) {
     total += Math.max(0, Math.min(session.end, end) - Math.max(session.start, minStart));
@@ -797,12 +807,8 @@ function buildDailyPoints(range: { start: number; end: number }, locale: string)
     if (!Number.isFinite(dayStart)) continue;
     const dayEnd = dayStart + DAY_MS - 1;
     if (dayEnd < minStart || dayStart > range.end) continue;
-    if (dayStart >= minStart && dayEnd <= range.end) {
-      byDay.set(key, (byDay.get(key) ?? 0) + rollup.ms);
-    } else {
-      const overlap = Math.min(dayEnd, range.end) - Math.max(dayStart, minStart) + 1;
-      if (overlap > 0) byDay.set(key, (byDay.get(key) ?? 0) + overlap);
-    }
+    const share = rollupOverlapMs(dayStart, rollup.ms, minStart, range.end);
+    if (share > 0) byDay.set(key, (byDay.get(key) ?? 0) + share);
   }
 
   const points: ChartPoint[] = [];
@@ -847,9 +853,13 @@ function buildMonthlyPoints(range: { start: number; end: number }, locale: strin
     const monthStart = new Date(Number(yearStr), Number(monthStr) - 1, 1).getTime();
     const monthEnd = new Date(Number(yearStr), Number(monthStr), 0, 23, 59, 59, 999).getTime();
     if (monthEnd < minStart || monthStart > range.end) continue;
-    const eligible = monthStart >= minStart && monthEnd <= range.end;
-    const overlap = eligible ? rollup.ms : Math.max(0, Math.min(monthEnd, range.end) - Math.max(monthStart, minStart));
-    if (overlap > 0) byMonth.set(normalized, (byMonth.get(normalized) ?? 0) + overlap);
+    const monthMs = (monthEnd - monthStart + 1) / DAY_MS;
+    const coveredDays = (Math.min(monthEnd, range.end) - Math.max(monthStart, minStart) + 1) / DAY_MS;
+    const share =
+      monthStart >= minStart && monthEnd <= range.end
+        ? rollup.ms
+        : Math.round((coveredDays / monthMs) * rollup.ms);
+    if (share > 0) byMonth.set(normalized, (byMonth.get(normalized) ?? 0) + share);
   }
 
   const points: ChartPoint[] = [];
@@ -893,9 +903,11 @@ function buildYearlyPoints(range: { start: number; end: number }): ChartPoint[] 
     const yearStart = new Date(year, 0, 1).getTime();
     const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999).getTime();
     if (yearEnd < minStart || yearStart > range.end) continue;
-    const eligible = yearStart >= minStart && yearEnd <= range.end;
-    const overlap = eligible ? rollup.ms : Math.max(0, Math.min(yearEnd, range.end) - Math.max(yearStart, minStart));
-    if (overlap > 0) byYear.set(year, (byYear.get(year) ?? 0) + overlap);
+    const yearMs = (yearEnd - yearStart + 1) / DAY_MS;
+    const coveredDays = (Math.min(yearEnd, range.end) - Math.max(yearStart, minStart) + 1) / DAY_MS;
+    const share =
+      yearStart >= minStart && yearEnd <= range.end ? rollup.ms : Math.round((coveredDays / yearMs) * rollup.ms);
+    if (share > 0) byYear.set(year, (byYear.get(year) ?? 0) + share);
   }
 
   const points: ChartPoint[] = [];

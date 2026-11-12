@@ -16,6 +16,8 @@ const PADDING_RIGHT = 8;
 const PADDING_TOP = 12;
 const PADDING_BOTTOM = 22;
 const MIN_BAR_WIDTH = 24;
+/** Approximate width of one 10px label character, used for label slotting. */
+const LABEL_CHAR_WIDTH = 6;
 
 /**
  * Responsive bar chart.
@@ -42,7 +44,10 @@ export function StatsChart({ data, titleKey }: Props) {
   const plotHeight = chartHeight - PADDING_TOP - PADDING_BOTTOM;
   const barW = data.length ? plotWidth / data.length : plotWidth;
   const barPadding = Math.min(barW * 0.18, 6);
-  const labelStep = Math.max(1, Math.ceil(MIN_BAR_WIDTH / Math.max(barW, 1)));
+  // Keep at least MIN_LABEL_GAP pixels between rendered labels.
+  const longestLabel = data.reduce((max, point) => Math.max(max, point.label.length), 0);
+  const labelSlotWidth = Math.max(MIN_BAR_WIDTH, longestLabel * LABEL_CHAR_WIDTH + 10);
+  const labelStep = Math.max(1, Math.ceil(labelSlotWidth / Math.max(barW, 1)));
 
   const gridLines = [
     { ratio: 0, label: "0" },

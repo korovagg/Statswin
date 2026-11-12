@@ -21,17 +21,62 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
   ru: ru as Dictionary,
 };
 
+const SUPPORTED: Locale[] = ["en", "ru"];
+
 /**
- * Reads the persisted UI language, defaulting to English.
+ * Picks the closest supported locale for a BCP-47 tag ("ru-RU" -> "ru").
+ */
+function matchLocale(tag: string | undefined | null): Locale | null {
+  if (!tag) return null;
+  const primary = tag.trim().toLowerCase().split("-")[0];
+  return SUPPORTED.find((locale) => locale === primary) ?? null;
+}
+
+/**
+ * Detects the UI language from the environment.
+ *
+ * Spicetify's client locale is checked first (that is the language the
+ * surrounding Spotify UI uses), then the webview languages, then English.
+ */
+function detectLanguage(): Locale {
+  if (typeof window === "undefined") return "en";
+
+  try {
+    const spicetify = window.Spicetify;
+    const fromSpicetify =
+      matchLocale(spicetify?.Locale?.getLocale?.()) ?? matchLocale(spicetify?.Config?.locale);
+    if (fromSpicetify) return fromSpicetify;
+  } catch {
+    // Fall through to the webview languages.
+  }
+
+  const candidates = [
+    ...(Array.isArray(navigator.languages) ? navigator.languages : []),
+    navigator.language,
+    document.documentElement.lang,
+  ];
+  for (const candidate of candidates) {
+    const matched = matchLocale(candidate);
+    if (matched) return matched;
+  }
+  return "en";
+}
+
+/**
+ * Reads the persisted UI language.
+ *
+ * A missing preference means "follow the client language"; the choice is
+ * persisted as soon as the user picks one in the settings dialog.
  */
 function getStoredLanguage(): Locale {
   if (typeof window === "undefined") return "en";
   try {
     const raw = window.localStorage.getItem(STORAGE_KEYS.language);
-    return raw === "ru" || raw === "en" ? raw : "en";
+    if (raw === "ru" || raw === "en") return raw;
   } catch {
-    return "en";
+    // localStorage can be unavailable (privacy mode); detection still works.
   }
+  return detectLanguage();
 }
 
 /**

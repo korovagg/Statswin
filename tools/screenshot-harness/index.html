@@ -61,7 +61,11 @@
         document.documentElement.lang = lang;
 
         localStorage.clear();
-        localStorage.setItem("statswin_language", lang);
+        // `lang` is the detection input: the app itself has no stored
+        // preference here, so it must derive the locale from the environment.
+        if (params.get("lang")) {
+          localStorage.setItem("statswin_language", lang);
+        }
 
         const now = new Date();
         const tracks = [
@@ -119,6 +123,7 @@
         };
 
         window.Spicetify = {
+          Locale: { getLocale: () => lang },
           Player: {
             data: { track: currentTrack, duration: 213_000, position: 61_000 },
             isPlaying: () => true,

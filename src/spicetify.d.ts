@@ -54,6 +54,11 @@ export interface SpicetifyPlayer {
   addEventListener?(event: string, callback: (payload: unknown) => void): void;
 }
 
+export interface SpicetifyLocaleApi {
+  /** Current client locale, e.g. "ru" or "en". */
+  getLocale?(): string;
+}
+
 export interface SpicetifyPlatformApi {
   PlayerAPI?: {
     /** Internal player state; shape is not part of the public API. */
@@ -71,6 +76,8 @@ export interface SpicetifyUri {
 export interface SpicetifyGlobal {
   Player: SpicetifyPlayer;
   Platform?: SpicetifyPlatformApi;
+  Locale?: SpicetifyLocaleApi;
+  Config?: { locale?: string };
   URI?: SpicetifyUri;
   showNotification?(message: string, isError?: boolean): void;
   React?: unknown;

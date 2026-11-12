@@ -37,6 +37,9 @@
   padding: 16px 20px 32px;
   color: var(--sw-text);
   font-family: var(--sw-font);
+  /* Sticky header band: same surface as the page, no clipping. */
+  background: var(--sw-bg);
+  overflow: visible;
 }
 
 .visuallyHidden {
@@ -120,17 +123,28 @@
   position: sticky;
   top: 0;
   z-index: 40;
+  isolation: isolate;
   margin: -16px -20px 0;
   padding: 16px 20px 12px;
-  /* Solid page colour: content scrolling underneath must never show through
-   * the bar (it used to turn into a grey strip over the cards). */
+  /* Opaque band: Spotify paints a track-colour gradient behind its own scroll
+   * container, which showed through the old translucent header. */
   background: var(--sw-bg);
-  box-shadow: 0 1px 0 0 transparent;
+  box-shadow: inset 0 0 0 0 transparent;
   transition: box-shadow 160ms var(--sw-ease);
 }
 
+/* Second opaque layer: some themes style `header` with their own translucent
+ * background, so the band is painted again on a pseudo element. */
+.topBarSticky::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--sw-bg);
+}
+
 .topBarSticky[data-stuck="true"] {
-  box-shadow: 0 1px 0 0 var(--sw-border), 0 8px 16px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 -1px 0 0 var(--sw-border);
 }
 
 /* ---------- Period selector ---------- */

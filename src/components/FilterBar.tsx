@@ -1,39 +1,49 @@
-import React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PeriodType, PeriodRange } from "../types/period";
 import { fromISODateLocal, getMonthLabels, rangeForMonth, rangeForYear, toISODateLocal } from "../utils/dateRanges";
 import { SERVICE_START_YEAR } from "../config";
-import { SettingsIcon } from "./icons/SettingsIcon";
 import { useI18n } from "../utils/i18n";
-import { InfoIcon } from "./icons/InfoIcon";
+import { ChevronDownIcon } from "./icons";
 import styles from "../css/app.module.scss";
 
 /**
- * Component FilterBar:
- * Renders the period presets, the year/month/custom sub-panels and the
- * settings/info triggers exactly once.
+ * Period selector.
  *
- * It is rendered inline in the app header (no portal): the previous portal
- * implementation duplicated the toolbar and therefore duplicated every modal id.
+ * Layout contract (keeps the header on a single visual line):
+ *  - a compact preset trigger ("Today ▾") opens a popover with every period;
+ *  - the sub-controls (year, month, custom dates) replace the trigger in place
+ *    instead of wrapping onto a second row;
+ *  - the app-level actions (Info / Settings) live in the app header, not here.
  */
 interface FilterBarProps {
   period: PeriodType;
   onPeriodChange: (period: PeriodType) => void;
   customRange: PeriodRange;
   onCustomRangeChange: (range: PeriodRange) => void;
-  onOpenSettings: () => void;
-  onOpenInfo: () => void;
 }
 
+const PRESETS: Array<{ period: PeriodType; labelKey: string }> = [
+  { period: PeriodType.Today, labelKey: "period.today" },
+  { period: PeriodType.Yesterday, labelKey: "period.yesterday" },
+  { period: PeriodType.Week, labelKey: "period.week" },
+  { period: PeriodType.Month, labelKey: "period.month" },
+  { period: PeriodType.Year, labelKey: "period.year" },
+  { period: PeriodType.Custom, labelKey: "period.custom" },
+];
+
 export default function FilterBar(props: FilterBarProps) {
-  const { period, onPeriodChange, customRange, onCustomRangeChange, onOpenSettings, onOpenInfo } = props;
+  const { period, onPeriodChange, customRange, onCustomRangeChange } = props;
   const { t, lang } = useI18n();
 
   const [currentYear, setCurrentYear] = useState<number>(() => new Date().getFullYear());
-  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date(customRange.start).getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date(customRange.start).getMonth());
+  const [menuOpen, setMenuOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const timerRef = useRef<number | null>(null);
 
+  // Re-arm the rollover timer once per year instead of polling.
   useEffect(() => {
     const schedule = () => {
       const now = new Date();
@@ -50,6 +60,33 @@ export default function FilterBar(props: FilterBarProps) {
     };
   }, []);
 
+  // Keep the year/month sub-panels in sync with the range chosen elsewhere
+  // (for example when the summary resets the range on period entry).
+  useEffect(() => {
+    const start = new Date(customRange.start);
+    setSelectedYear(start.getFullYear());
+    setSelectedMonth(start.getMonth());
+  }, [customRange.start]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
   const availableYears = useMemo(() => {
     const years: number[] = [];
     for (let year = SERVICE_START_YEAR; year <= currentYear; year += 1) years.push(year);
@@ -57,8 +94,10 @@ export default function FilterBar(props: FilterBarProps) {
   }, [currentYear]);
 
   const monthLabels = useMemo(() => getMonthLabels(lang), [lang]);
+  const currentPresetLabel = t(PRESETS.find((preset) => preset.period === period)?.labelKey ?? "period.today");
 
-  const handlePresetClick = (next: PeriodType) => {
+  const selectPeriod = (next: PeriodType) => {
+    setMenuOpen(false);
     onPeriodChange(next);
     if (next === PeriodType.Year) {
       const year = new Date().getFullYear();
@@ -77,132 +116,124 @@ export default function FilterBar(props: FilterBarProps) {
     if (parsed == null) return;
     let start = which === "start" ? parsed : customRange.start;
     let end = which === "end" ? parsed : customRange.end;
-    if (start > end) {
-      [start, end] = [end, start];
-    }
+    if (start > end) [start, end] = [end, start];
     onPeriodChange(PeriodType.Custom);
     onCustomRangeChange({ start, end });
   };
 
-  const PresetButton = ({
-    active,
-    label,
-    onClick,
-  }: {
-    active: boolean;
-    label: string;
-    onClick: () => void;
-  }) => (
-    <button
-      type="button"
-      className={`${styles.filterButton} ${active ? styles.filterActive : ""}`}
-      onClick={onClick}
-      aria-pressed={active}
-    >
-      {label}
-    </button>
-  );
-
-  const presets: Array<{ period: PeriodType; labelKey: string }> = [
-    { period: PeriodType.Today, labelKey: "period.today" },
-    { period: PeriodType.Yesterday, labelKey: "period.yesterday" },
-    { period: PeriodType.Week, labelKey: "period.week" },
-    { period: PeriodType.Month, labelKey: "period.month" },
-    { period: PeriodType.Year, labelKey: "period.year" },
-    { period: PeriodType.Custom, labelKey: "period.custom" },
-  ];
-
   return (
-    <div className={styles.filterBar} role="toolbar" aria-label={t("filter.ariaToolbar")}>
-      <div className={styles.filterButtons}>
-        {presets.map(({ period: preset, labelKey }) => (
-          <PresetButton
-            key={preset}
-            active={period === preset}
-            label={t(labelKey)}
-            onClick={() => handlePresetClick(preset)}
-          />
-        ))}
+    <div className={styles.periodControl} ref={rootRef}>
+      <div className={styles.segmented} role="group" aria-label={t("filter.ariaToolbar")}>
+        <button
+          ref={triggerRef}
+          type="button"
+          className={`${styles.chip} ${styles.chipTrigger} ${menuOpen ? styles.chipActive : ""}`}
+          aria-haspopup="listbox"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {currentPresetLabel}
+          <ChevronDownIcon className={styles.chipIcon} />
+        </button>
+
+        {period === PeriodType.Year && (
+          <select
+            className={styles.select}
+            value={selectedYear}
+            aria-label={t("period.year")}
+            onChange={(event) => {
+              const year = Number(event.target.value);
+              setSelectedYear(year);
+              onCustomRangeChange(rangeForYear(year));
+            }}
+          >
+            {availableYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {period === PeriodType.Month && (
+          <>
+            <select
+              className={styles.select}
+              value={selectedYear}
+              aria-label={t("filter.date.year")}
+              onChange={(event) => {
+                const year = Number(event.target.value);
+                setSelectedYear(year);
+                onCustomRangeChange(rangeForMonth(year, selectedMonth));
+              }}
+            >
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+            <select
+              className={styles.select}
+              value={selectedMonth}
+              aria-label={t("period.month")}
+              onChange={(event) => {
+                const month = Number(event.target.value);
+                setSelectedMonth(month);
+                onCustomRangeChange(rangeForMonth(selectedYear, month));
+              }}
+            >
+              {monthLabels.map((label, index) => (
+                <option key={`${index}-${label}`} value={index}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+
+        {period === PeriodType.Custom && (
+          <div className={styles.dateRange}>
+            <input
+              type="date"
+              className={styles.dateInput}
+              value={toISODateLocal(customRange.start)}
+              aria-label={t("filter.date.start")}
+              onChange={(event) => handleDateChange("start", event.target.value)}
+            />
+            <span className={styles.dateSeparator} aria-hidden>
+              –
+            </span>
+            <input
+              type="date"
+              className={styles.dateInput}
+              value={toISODateLocal(customRange.end)}
+              aria-label={t("filter.date.end")}
+              onChange={(event) => handleDateChange("end", event.target.value)}
+            />
+          </div>
+        )}
       </div>
 
-      <button
-        type="button"
-        className={styles.iconButton}
-        onClick={onOpenInfo}
-        aria-label={t("filter.info")}
-        aria-haspopup="dialog"
-        aria-controls="statswin-info-modal"
-      >
-        <InfoIcon />
-      </button>
-      <button
-        type="button"
-        className={styles.iconButton}
-        onClick={onOpenSettings}
-        aria-label={t("filter.settings")}
-        aria-haspopup="dialog"
-        aria-controls="statswin-settings-modal"
-      >
-        <SettingsIcon />
-      </button>
-
-      {period === PeriodType.Year && (
-        <div className={styles.filterPanel} role="group" aria-label={t("period.year")}>
-          <div className={styles.filterRow}>
-            {availableYears.map((year) => (
-              <PresetButton
-                key={year}
-                active={selectedYear === year}
-                label={String(year)}
-                onClick={() => {
-                  setSelectedYear(year);
-                  onCustomRangeChange(rangeForYear(year));
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {period === PeriodType.Month && (
-        <div className={styles.filterPanel} role="group" aria-label={t("period.month")}>
-          <div className={styles.filterRow}>
-            {monthLabels.map((label, index) => (
-              <PresetButton
-                key={`${index}-${label}`}
-                active={selectedMonth === index}
-                label={label}
-                onClick={() => {
-                  setSelectedMonth(index);
-                  onCustomRangeChange(rangeForMonth(selectedYear, index));
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {period === PeriodType.Custom && (
-        <div className={styles.filterPanel}>
-          <div className={styles.dateInputs}>
-            <label>
-              {t("filter.date.start")}
-              <input
-                type="date"
-                value={toISODateLocal(customRange.start)}
-                onChange={(event) => handleDateChange("start", event.target.value)}
-              />
-            </label>
-            <label>
-              {t("filter.date.end")}
-              <input
-                type="date"
-                value={toISODateLocal(customRange.end)}
-                onChange={(event) => handleDateChange("end", event.target.value)}
-              />
-            </label>
-          </div>
-        </div>
+      {menuOpen && (
+        <ul className={styles.menu} role="listbox" aria-label={t("filter.ariaToolbar")} tabIndex={-1}>
+          {PRESETS.map((preset) => {
+            const selected = preset.period === period;
+            return (
+              <li key={preset.period}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={`${styles.menuItem} ${selected ? styles.menuItemActive : ""}`}
+                  onClick={() => selectPeriod(preset.period)}
+                >
+                  {t(preset.labelKey)}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

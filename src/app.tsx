@@ -10,6 +10,7 @@ import { TopTracks } from "./components/TopTracks";
 import { TopArtists } from "./components/TopArtists";
 import { SettingsModal } from "./components/SettingsModal";
 import { InfoModal } from "./components/InfoModal";
+import { AppIcon, InfoIcon, SettingsIcon } from "./components/icons";
 import { getDefaultRangeForPeriod } from "./utils/dateRanges";
 import {
   getSessionsInRange,
@@ -98,7 +99,7 @@ function AppView() {
   );
 
   useEffect(() => {
-    // Run the �� before anything reads storage, then refresh.
+    // Run the v2-to-v3 migration before anything reads storage, then refresh.
     migrateV2ToV3();
     const tracker = getListeningTracker();
     if (!tracker.isRunning()) tracker.start();
@@ -148,56 +149,69 @@ function AppView() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <h1 className={styles.title}>
-            Statswin <span className={styles.version}>v{getAppVersion()}</span>
-          </h1>
-          <div className={styles.subtitle}>
-            <a href="https://korowin.42web.io" target="_blank" rel="noopener noreferrer">
-              by Korowin
-            </a>
-          </div>
+      <header className={styles.topBar}>
+        <div className={styles.brand}>
+          <span className={styles.brandMark} aria-hidden>
+            <AppIcon />
+          </span>
+          <span className={styles.brandText}>
+            <span className={styles.brandName}>Statswin</span>
+            <span className={styles.brandVersion}>v{getAppVersion()}</span>
+          </span>
         </div>
-        <div className={styles.headerRight}>
-          <FilterBar
-            period={period}
-            onPeriodChange={handlePeriodChange}
-            customRange={customRange}
-            onCustomRangeChange={setCustomRange}
-            onOpenSettings={() => setSettingsOpen(true)}
-            onOpenInfo={() => setInfoOpen(true)}
-          />
+
+        <FilterBar
+          period={period}
+          onPeriodChange={handlePeriodChange}
+          customRange={customRange}
+          onCustomRangeChange={setCustomRange}
+        />
+
+        <div className={styles.topActions}>
+          <button
+            type="button"
+            className={styles.iconButton}
+            aria-label={t("filter.info")}
+            aria-haspopup="dialog"
+            aria-controls="statswin-info-modal"
+            onClick={() => setInfoOpen(true)}
+          >
+            <InfoIcon />
+          </button>
+          <button
+            type="button"
+            className={styles.iconButton}
+            aria-label={t("filter.settings")}
+            aria-haspopup="dialog"
+            aria-controls="statswin-settings-modal"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <SettingsIcon />
+          </button>
         </div>
       </header>
 
       <CheckLimitsBanner />
 
       <main className={styles.main}>
-        <section className={`${styles.heroSection} ${styles.card}`}>
-          <StatsSummary
-            range={range}
-            totalMs={totalMs}
-            previousMs={previousTotalMs}
-            previousLabel={previousPeriodLabel}
-          />
-        </section>
+        <StatsSummary
+          className={styles.heroSection}
+          range={range}
+          totalMs={totalMs}
+          previousMs={previousTotalMs}
+          previousLabel={previousPeriodLabel}
+        />
 
-        <section className={`${styles.chartSection} ${styles.card}`}>
+        <div className={styles.chartSection}>
           <StatsChart data={chartSeries.points} titleKey={chartTitleKey} />
-        </section>
+        </div>
 
         <section className={styles.extraStatsSection}>
           <StatsExtraRow sessions={rangeSessions} rangeStart={range.start} />
         </section>
 
-        <section className={`${styles.topSection} ${styles.card}`}>
-          <TopTracks sessions={topSessions} topRange={topRange} />
-        </section>
-
-        <section className={`${styles.topSection} ${styles.card}`}>
-          <TopArtists sessions={topSessions} topRange={topRange} />
-        </section>
+        <TopTracks sessions={topSessions} topRange={topRange} />
+        <TopArtists sessions={topSessions} topRange={topRange} />
       </main>
 
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />

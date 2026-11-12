@@ -6,7 +6,7 @@ import { useI18n } from "../utils/i18n";
 import { TopItem, TopSort, aggregateTop } from "../utils/topAggregators";
 import { formatDuration } from "../utils/format";
 import { openUri } from "./shared";
-import { ChevronDownIcon } from "./icons";
+import { Select } from "./Select";
 
 type Props = {
   sessions: Session[];
@@ -124,14 +124,17 @@ export function Panel({
           <span className={styles.panelTitle}>{title}</span>
           <span className={styles.panelCaption}>{caption}</span>
         </span>
-        <label className={styles.miniSelect}>
-          <span className={styles.visuallyHidden}>{t("top.sort.label")}</span>
-          <select value={sortBy} onChange={(event) => onSortChange(event.target.value === "time" ? "time" : "plays")}>
-            <option value="plays">{t("top.sort.plays")}</option>
-            <option value="time">{t("top.sort.time")}</option>
-          </select>
-          <ChevronDownIcon className={styles.miniSelectIcon} />
-        </label>
+        <Select
+          className={styles.panelSort}
+          size="small"
+          ariaLabel={t("top.sort.label")}
+          value={sortBy}
+          options={[
+            { value: "plays", label: t("top.sort.plays") },
+            { value: "time", label: t("top.sort.time") },
+          ]}
+          onChange={(next) => onSortChange(next === "time" ? "time" : "plays")}
+        />
       </header>
       <div className={styles.listBody}>{children}</div>
     </section>

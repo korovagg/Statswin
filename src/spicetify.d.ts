@@ -8,6 +8,12 @@
 
 export interface SpicetifyImageSource {
   url?: string;
+  /** Newer clients report the image hash as `spotify:image:<hash>`. */
+  label?: string;
+  width?: number;
+  height?: number;
+  maxWidth?: number;
+  maxHeight?: number;
 }
 
 export interface SpicetifyAlbumLike {
@@ -22,6 +28,8 @@ export interface SpicetifyTrackLike {
   artist_name?: string;
   artists?: Array<{ uri?: string; name?: string }>;
   album?: SpicetifyAlbumLike;
+  /** Current clients expose cover images on the item as well as on the album. */
+  images?: SpicetifyImageSource[];
   metadata?: Record<string, string | undefined>;
   duration?: number;
   /** Common legacy field aliases seen in different Spicetify versions. */
@@ -31,7 +39,10 @@ export interface SpicetifyTrackLike {
 }
 
 export interface SpicetifyPlayerData {
+  /** Legacy shape; current clients use `item`. */
   track?: SpicetifyTrackLike;
+  /** Currently playing context item (track/episode). */
+  item?: SpicetifyTrackLike;
   duration?: number;
   position?: number;
 }

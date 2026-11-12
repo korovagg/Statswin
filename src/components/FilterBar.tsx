@@ -4,6 +4,7 @@ import { fromISODateLocal, getMonthLabels, rangeForMonth, rangeForYear, toISODat
 import { SERVICE_START_YEAR } from "../config";
 import { useI18n } from "../utils/i18n";
 import { ChevronDownIcon } from "./icons";
+import { Select, SelectOption } from "./Select";
 import styles from "../css/app.module.scss";
 
 /**
@@ -94,6 +95,16 @@ export default function FilterBar(props: FilterBarProps) {
   }, [currentYear]);
 
   const monthLabels = useMemo(() => getMonthLabels(lang), [lang]);
+
+  const yearOptions = useMemo<SelectOption[]>(
+    () => availableYears.map((year) => ({ value: String(year), label: String(year) })),
+    [availableYears]
+  );
+
+  const monthOptions = useMemo<SelectOption[]>(
+    () => monthLabels.map((label, index) => ({ value: String(index), label })),
+    [monthLabels]
+  );
   const currentPresetLabel = t(PRESETS.find((preset) => preset.period === period)?.labelKey ?? "period.today");
 
   const selectPeriod = (next: PeriodType) => {
@@ -129,6 +140,7 @@ export default function FilterBar(props: FilterBarProps) {
           type="button"
           className={`${styles.chip} ${styles.chipTrigger} ${menuOpen ? styles.chipActive : ""}`}
           aria-haspopup="listbox"
+          aria-label={t("filter.ariaToolbar")}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
         >
@@ -137,58 +149,43 @@ export default function FilterBar(props: FilterBarProps) {
         </button>
 
         {period === PeriodType.Year && (
-          <select
-            className={styles.select}
-            value={selectedYear}
-            aria-label={t("period.year")}
-            onChange={(event) => {
-              const year = Number(event.target.value);
+          <Select
+            className={styles.inlineSelect}
+            ariaLabel={t("period.year")}
+            value={String(selectedYear)}
+            options={yearOptions}
+            onChange={(next) => {
+              const year = Number(next);
               setSelectedYear(year);
               onCustomRangeChange(rangeForYear(year));
             }}
-          >
-            {availableYears.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
+          />
         )}
 
         {period === PeriodType.Month && (
           <>
-            <select
-              className={styles.select}
-              value={selectedYear}
-              aria-label={t("filter.date.year")}
-              onChange={(event) => {
-                const year = Number(event.target.value);
+            <Select
+              className={styles.inlineSelect}
+              ariaLabel={t("filter.date.year")}
+              value={String(selectedYear)}
+              options={yearOptions}
+              onChange={(next) => {
+                const year = Number(next);
                 setSelectedYear(year);
                 onCustomRangeChange(rangeForMonth(year, selectedMonth));
               }}
-            >
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-            <select
-              className={styles.select}
-              value={selectedMonth}
-              aria-label={t("period.month")}
-              onChange={(event) => {
-                const month = Number(event.target.value);
+            />
+            <Select
+              className={styles.inlineSelect}
+              ariaLabel={t("period.month")}
+              value={String(selectedMonth)}
+              options={monthOptions}
+              onChange={(next) => {
+                const month = Number(next);
                 setSelectedMonth(month);
                 onCustomRangeChange(rangeForMonth(selectedYear, month));
               }}
-            >
-              {monthLabels.map((label, index) => (
-                <option key={`${index}-${label}`} value={index}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            />
           </>
         )}
 

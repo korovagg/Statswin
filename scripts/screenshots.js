@@ -45,7 +45,9 @@ async function main() {
       height: 800,
       openSettings: true,
     },
-    { file: "period-menu-dark.png", query: "theme=dark&lang=en", width: 1280, height: 560, openMenu: true },
+    { file: "period-menu-dark.png", query: "theme=dark&lang=en", width: 1280, height: 560, openMenu: "Period selection" },
+    { file: "year-select-dark.png", query: "theme=dark&lang=en", width: 1280, height: 560, period: "Year", openSelect: "Year" },
+    { file: "sort-menu-dark.png", query: "theme=dark&lang=en", width: 1280, height: 900, scrollToTops: true, openSelect: "Sort" },
     { file: "custom-dark.png", query: "theme=dark&lang=en", width: 1280, height: 560, period: "Custom" },
     { file: "settings-general-dark.png", query: "theme=dark&lang=ru", width: 1280, height: 700, openSettings: true, settingsTab: "Общие" },
     { file: "today-narrow.png", query: "theme=dark&lang=en", width: 768, height: 1024 },
@@ -61,12 +63,16 @@ async function main() {
       await page.waitForSelector("text=Statswin", { timeout: 20000 });
 
       if (shot.period) {
-        await page.getByRole("button", { name: /^[A-Za-z]+$/ }).first().click();
+        await page.getByRole("button", { name: "Period selection" }).first().click();
         await page.getByRole("option", { name: shot.period, exact: true }).click();
       }
       if (shot.openMenu) {
-        await page.getByRole("button", { name: /^[A-Za-z]+$/ }).first().click();
+        await page.getByRole("button", { name: shot.openMenu === true ? "Period selection" : shot.openMenu }).first().click();
         await page.waitForSelector('[role="listbox"]');
+      }
+      if (shot.openSelect) {
+        await page.getByRole("button", { name: shot.openSelect }).first().click();
+        await page.waitForSelector("[role='listbox']");
       }
       if (shot.openSettings) {
         const settingsName = shot.query.includes("lang=ru") ? "Настройки" : "Settings";

@@ -2,6 +2,7 @@ import { addSession, flushStorage } from "../utils/storage";
 import { MAX_DEBUG_LOGS } from "../config";
 import { Session, TrackInfo } from "../types";
 import { getSpicetify } from "../utils/spicetify";
+import { normalizeCoverUrl, pickCoverFromImages } from "../utils/covers";
 
 /**
  * Listening tracker.
@@ -101,6 +102,11 @@ function resolveArtistUri(trackLike: unknown): string | undefined {
 
 /**
  * Extracts an album art URL from any of the shapes Spicetify exposes.
+ *
+ * Newer clients report `spotify:image:<hash>` instead of an https URL, and the
+ * images may sit on the item itself, its album, or the legacy metadata bag.
+ * Every candidate goes through `normalizeCoverUrl`, so the result is always a
+ * storable https URL.
  */
 function resolveImageUrl(trackLike: unknown): string | undefined {
   try {
@@ -108,34 +114,33 @@ function resolveImageUrl(trackLike: unknown): string | undefined {
     if (!root) return undefined;
 
     const album = asRecord(root.album);
-    const albumImages = album?.images;
-    if (Array.isArray(albumImages)) {
-      const first = asRecord(albumImages[0]);
-      if (typeof first?.url === "string" && first.url) return first.url;
-    }
+    const fromAlbum = pickCoverFromImages(album?.images) ?? pickCoverFromImages(root.images);
+    if (fromAlbum) return fromAlbum;
+
     const coverSources = asRecord(album?.coverArt)?.sources;
     if (Array.isArray(coverSources)) {
-      const first = asRecord(coverSources[0]);
-      if (typeof first?.url === "string" && first.url) return first.url;
+      const first = asRecord(coverSources[0])?.url;
+      const normalized = normalizeCoverUrl(first);
+      if (normalized) return normalized;
     }
 
-    const direct = root.image_url ?? root.imageUrl ?? root.coverArtUrl;
-    if (typeof direct === "string" && direct) return direct;
+    const direct = normalizeCoverUrl(root.image_url ?? root.imageUrl ?? root.coverArtUrl);
+    if (direct) return direct;
 
     const metadata = asRecord(root.metadata);
-    const metaUrl = metadata?.image_url ?? metadata?.imageUrl;
-    if (typeof metaUrl === "string" && metaUrl) return metaUrl;
+    const metaUrl = normalizeCoverUrl(metadata?.image_url ?? metadata?.imageUrl);
+    if (metaUrl) return metaUrl;
 
     const data = asRecord(root.data);
     const nested =
       asRecord(data?.track) ?? asRecord(data?.item) ?? asRecord(data?.album) ?? asRecord(data);
     const nestedAlbum = asRecord(nested?.album);
-    const nestedImages = nestedAlbum?.images ?? nested?.images;
-    if (Array.isArray(nestedImages)) {
-      const first = asRecord(nestedImages[0]);
-      if (typeof first?.url === "string" && first.url) return first.url;
-    }
-    if (typeof nested?.image_url === "string" && nested.image_url) return nested.image_url;
+    const fromNested =
+      pickCoverFromImages(nestedAlbum?.images) ?? pickCoverFromImages(nested?.images);
+    if (fromNested) return fromNested;
+
+    const nestedDirect = normalizeCoverUrl(nested?.image_url);
+    if (nestedDirect) return nestedDirect;
   } catch {
     // Fall through to undefined.
   }
@@ -149,12 +154,16 @@ function sanitizeTrack(track: TrackInfo | null): TrackInfo | null {
     name: track.name || track.uri,
     artist: track.artist || "",
     artistUri: track.artistUri,
-    imageUrl: track.imageUrl && track.imageUrl.length <= 512 ? track.imageUrl : undefined,
+    imageUrl: normalizeCoverUrl(track.imageUrl),
   };
 }
 
 /**
  * Reads the current track info from the Spicetify player.
+ *
+ * Order matters: current clients expose the playing item as `Player.data.item`
+ * (and `PlayerAPI._state.item`); the legacy `Player.data.track` shape still
+ * exists in older builds, so it is kept as a fallback.
  */
 function getCurrentTrackInfo(): TrackInfo | null {
   try {
@@ -162,34 +171,30 @@ function getCurrentTrackInfo(): TrackInfo | null {
     if (!spicetify) return null;
 
     const playerData = spicetify.Player.data;
-    const track = playerData?.track;
-    if (track?.uri) {
-      return sanitizeTrack({
-        uri: track.uri,
-        name: track.name || track.metadata?.name || "",
-        artist: track.artist_name || track.artist || track.metadata?.artist_name || "",
-        artistUri: resolveArtistUri(track) ?? resolveArtistUri(playerData),
-        imageUrl: resolveImageUrl(track) ?? resolveImageUrl(playerData),
-      });
-    }
-
     const state = asRecord(spicetify.Platform?.PlayerAPI?._state);
-    const item = state?.item;
-    const itemRecord = asRecord(item);
+
+    const itemRecord =
+      asRecord(playerData?.item) ?? asRecord(state?.item) ?? asRecord(asRecord(playerData)?.track) ?? asRecord(state?.track);
     const itemUri = itemRecord?.uri;
     if (typeof itemUri === "string" && itemUri) {
       const artists = itemRecord?.artists;
       const firstArtist = Array.isArray(artists) ? asRecord(artists[0]) : null;
+      const legacyTrack = asRecord(asRecord(playerData)?.track);
       const artistName =
         (typeof firstArtist?.name === "string" && firstArtist.name) ||
+        (typeof itemRecord?.artist_name === "string" && itemRecord.artist_name) ||
         (typeof itemRecord?.artist === "string" && itemRecord.artist) ||
+        (typeof legacyTrack?.artist_name === "string" && legacyTrack.artist_name) ||
         "";
       return sanitizeTrack({
         uri: itemUri,
-        name: (typeof itemRecord?.name === "string" && itemRecord.name) || "",
+        name:
+          (typeof itemRecord?.name === "string" && itemRecord.name) ||
+          (typeof legacyTrack?.name === "string" && legacyTrack.name) ||
+          "",
         artist: artistName,
-        artistUri: resolveArtistUri(item) ?? resolveArtistUri(state),
-        imageUrl: resolveImageUrl(item) ?? resolveImageUrl(state),
+        artistUri: resolveArtistUri(itemRecord) ?? resolveArtistUri(playerData) ?? resolveArtistUri(state),
+        imageUrl: resolveImageUrl(itemRecord) ?? resolveImageUrl(playerData) ?? resolveImageUrl(state),
       });
     }
 

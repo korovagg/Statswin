@@ -10,6 +10,7 @@ import { ChartGranularity, ChartSeries } from "../types";
 import { MAX_IMPORT_BYTES, RETENTION_DAYS, SERVICE_START_YEAR, STORAGE_KEYS, STORAGE_SCHEMA_VERSION } from "../config";
 import { dateKey, getHourlyBuckets, rangeForMonth, rangeForYear, toISODateLocal } from "../utils/dateRanges";
 import { Locale, getCurrentLanguage } from "../utils/i18n";
+import { normalizeCoverUrl } from "../utils/covers";
 
 /**
  * Statswin storage, schema v3.
@@ -126,12 +127,9 @@ function minAllowedTimestamp(): number {
  * bounded much tighter; they only appear in local tooling and tests.
  */
 function sanitizeImageUrl(url: unknown): string | undefined {
-  if (!isNonEmptyString(url)) return undefined;
-  const trimmed = url.trim();
-  if (trimmed.length > 512) return undefined;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (/^data:image\//i.test(trimmed) && trimmed.length <= 256) return trimmed;
-  return undefined;
+  // Stored covers are always https URLs; older builds could contain a
+  // `spotify:image:<hash>` URI, which is converted during normalization.
+  return normalizeCoverUrl(url);
 }
 
 /**

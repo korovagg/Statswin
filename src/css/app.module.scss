@@ -140,7 +140,7 @@
   padding: 0 12px;
   border: none;
   border-radius: 999px;
-  background: transparent;
+  background: var(--sw-surface-3);
   color: var(--sw-text);
   font: inherit;
   font-size: 13px;
@@ -174,37 +174,6 @@
   transform: rotate(180deg);
 }
 
-.select {
-  appearance: none;
-  height: 28px;
-  max-width: 150px;
-  padding: 0 26px 0 12px;
-  border: none;
-  border-radius: 999px;
-  background-color: transparent;
-  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position: calc(100% - 15px) 12px, calc(100% - 10px) 12px;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-  color: var(--sw-text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 120ms var(--sw-ease);
-}
-
-.select:hover,
-.dateInput:hover {
-  background-color: var(--sw-highlight);
-}
-
-.select option {
-  background: var(--sw-surface-3);
-  color: var(--sw-text);
-}
-
 .dateRange {
   display: inline-flex;
   align-items: center;
@@ -229,11 +198,7 @@
 }
 
 :global(.encore-light-theme) .dateInput,
-:global(.encore-light-theme) .select {
-  color-scheme: light;
-}
-
-.dateSeparator {
+:global(.encore-light-theme) .dateSeparator {
   color: var(--sw-muted);
   font-size: 12px;
 }
@@ -416,7 +381,6 @@
 .menuItem:focus-visible,
 .iconButton:focus-visible,
 .iconButtonSmall:focus-visible,
-.select:focus-visible,
 .dateInput:focus-visible,
 .panelToggle:focus-visible,
 .listRow:focus-visible,
@@ -621,45 +585,6 @@
   color: var(--sw-muted);
 }
 
-.miniSelect {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  margin-left: auto;
-}
-
-.miniSelect select {
-  appearance: none;
-  height: 26px;
-  padding: 0 24px 0 10px;
-  border: 1px solid var(--sw-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--sw-text);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.miniSelect select:hover {
-  background: var(--sw-highlight);
-}
-
-.miniSelect select option {
-  background: var(--sw-surface-3);
-  color: var(--sw-text);
-}
-
-.miniSelectIcon {
-  position: absolute;
-  right: 6px;
-  width: 14px;
-  height: 14px;
-  pointer-events: none;
-  color: var(--sw-muted);
-}
-
 .listBody {
   display: grid;
   gap: 2px;
@@ -774,6 +699,147 @@
 .panelToggle:hover {
   color: var(--sw-text);
   background: var(--sw-surface-2);
+}
+
+/* ---------- Themed dropdown ---------- */
+
+.selectRoot {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.selectTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  max-width: 180px;
+  padding: 0 8px 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sw-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms var(--sw-ease);
+}
+
+.selectTriggerSmall {
+  height: 26px;
+  padding: 0 6px 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.selectTrigger:hover,
+.selectTriggerOpen {
+  background: var(--sw-highlight);
+}
+
+.selectTrigger:focus-visible {
+  outline: 2px solid var(--sw-accent-strong);
+  outline-offset: 2px;
+}
+
+.selectValue {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectChevron {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--sw-muted);
+  transition: transform 150ms var(--sw-ease);
+}
+
+.selectTriggerOpen .selectChevron {
+  transform: rotate(180deg);
+}
+
+.selectMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 160px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: var(--sw-radius);
+  border: 1px solid var(--sw-border);
+  background: var(--sw-surface-3);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+.selectMenuSmall {
+  min-width: 140px;
+}
+
+.selectOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--sw-radius-sm);
+  background: transparent;
+  color: var(--sw-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selectMenuSmall .selectOption {
+  height: 28px;
+  font-size: 12px;
+}
+
+.selectOptionActive {
+  background: var(--sw-highlight);
+}
+
+.selectOptionSelected {
+  color: var(--sw-accent-strong);
+}
+
+.selectCheck {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.selectOption:focus-visible {
+  outline: 2px solid var(--sw-accent-strong);
+  outline-offset: -2px;
+}
+
+/* Trigger used inline inside the period segmented control. */
+.inlineSelect {
+  flex: none;
+}
+
+.inlineSelect .selectTrigger {
+  background: transparent;
+}
+
+/* Trigger used in the top-list panel header. */
+.panelSort {
+  margin-left: auto;
+  flex: none;
 }
 
 /* ---------- Inline banner ---------- */

@@ -121,13 +121,17 @@ function minAllowedTimestamp(): number {
 
 /**
  * Trims album art URLs that would waste the storage budget.
+ *
+ * Spotify serves covers as https URLs. Inline `data:` images are accepted but
+ * bounded much tighter; they only appear in local tooling and tests.
  */
 function sanitizeImageUrl(url: unknown): string | undefined {
   if (!isNonEmptyString(url)) return undefined;
   const trimmed = url.trim();
   if (trimmed.length > 512) return undefined;
-  if (!/^https?:\/\//i.test(trimmed)) return undefined;
-  return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^data:image\//i.test(trimmed) && trimmed.length <= 256) return trimmed;
+  return undefined;
 }
 
 /**

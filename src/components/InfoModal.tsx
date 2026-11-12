@@ -1,9 +1,8 @@
-import React from "react";
-import { useEffect, useId } from "react";
+import React, { useEffect, useId } from "react";
 import styles from "../css/app.module.scss";
 import { useI18n } from "../utils/i18n";
 import { getAppVersion } from "../version";
-import { AppIcon } from "./icons/AppIcon";
+import { AppIcon, BugIcon, CloseIcon, GitHubIcon, UserIcon } from "./icons";
 
 interface InfoModalProps {
   open: boolean;
@@ -13,7 +12,7 @@ interface InfoModalProps {
 const GITHUB_URL = "https://github.com/korovagg/Statswin";
 
 /**
- * About dialog with version, author and issue links.
+ * About dialog: app mark, version, short description and external links.
  */
 export function InfoModal({ open, onClose }: InfoModalProps) {
   const { t } = useI18n();
@@ -30,6 +29,12 @@ export function InfoModal({ open, onClose }: InfoModalProps) {
 
   if (!open) return null;
 
+  const links = [
+    { href: "https://korowin.42web.io", label: t("info.author"), Icon: UserIcon },
+    { href: GITHUB_URL, label: t("info.github"), Icon: GitHubIcon },
+    { href: `${GITHUB_URL}/issues/new`, label: t("info.reportBug"), Icon: BugIcon },
+  ];
+
   return (
     <div
       id="statswin-info-modal"
@@ -41,34 +46,39 @@ export function InfoModal({ open, onClose }: InfoModalProps) {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className={styles.modal}>
-        <button type="button" className={styles.modalClose} aria-label={t("settings.close")} onClick={onClose}>
-          ×
-        </button>
+      <div className={`${styles.modal} ${styles.infoModal}`}>
+        <header className={styles.modalHeader}>
+          <h2 id={`statswin-info-title-${titleId}`} className={styles.modalTitle}>
+            {t("info.title")}
+          </h2>
+          <button type="button" className={styles.iconButton} aria-label={t("settings.close")} onClick={onClose}>
+            <CloseIcon />
+          </button>
+        </header>
 
-        <div className={styles.aboutHeader}>
-          <AppIcon />
-          <div>
+        <div className={styles.aboutHero}>
+          <span className={styles.aboutMark} aria-hidden>
+            <AppIcon />
+          </span>
+          <div className={styles.aboutMeta}>
             <div className={styles.aboutName}>Statswin</div>
-            <div className={styles.version}>v{getAppVersion()}</div>
+            <div className={styles.aboutVersion}>v{getAppVersion()}</div>
           </div>
         </div>
-        <h2 id={`statswin-info-title-${titleId}`} className={styles.modalTitle}>
-          {t("info.title")}
-        </h2>
-        <div className={styles.modalBody}>
-          <p className={styles.modalText}>{t("info.text")}</p>
-          <div className={styles.modalActions}>
-            <a href="https://korowin.42web.io" target="_blank" rel="noreferrer" className={styles.filterButton}>
-              {t("info.author")}
+
+        <p className={styles.aboutText}>{t("info.text")}</p>
+
+        <div className={styles.rowList}>
+          {links.map(({ href, label, Icon }) => (
+            <a key={href} href={href} target="_blank" rel="noreferrer" className={styles.actionRow}>
+              <span className={styles.actionRowIcon}>
+                <Icon />
+              </span>
+              <span className={styles.actionRowText}>
+                <span className={styles.actionRowTitle}>{label}</span>
+              </span>
             </a>
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className={styles.filterButton}>
-              {t("info.github")}
-            </a>
-            <a href={`${GITHUB_URL}/issues/new`} target="_blank" rel="noreferrer" className={styles.filterButton}>
-              {t("info.reportBug")}
-            </a>
-          </div>
+          ))}
         </div>
       </div>
     </div>

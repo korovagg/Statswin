@@ -35,7 +35,7 @@ type Tab = "data" | "general";
  */
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const { t, lang, setLang } = useI18n();
-  const [tab, setTab] = useState<Tab>("data");
+  const [tab, setTab] = useState<Tab>("general");
   const [confirmReset, setConfirmReset] = useState(false);
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [importMode, setImportMode] = useState<"merge" | "replace">("merge");
@@ -50,7 +50,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     setConfirmReset(false);
     setPending(null);
     setMessage(null);
-    setTab("data");
+    setTab("general");
     onClose();
   };
 
@@ -165,8 +165,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           <nav className={styles.settingsNav} role="tablist" aria-label={t("settings.title")}>
             {(
               [
-                { id: "data" as Tab, label: t("settings.tab.data") },
                 { id: "general" as Tab, label: t("settings.tab.general") },
+                { id: "data" as Tab, label: t("settings.tab.data") },
               ]
             ).map((item) => (
               <button

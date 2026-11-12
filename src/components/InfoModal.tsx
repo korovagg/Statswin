@@ -30,7 +30,7 @@ export function InfoModal({ open, onClose }: InfoModalProps) {
   if (!open) return null;
 
   const links = [
-    { href: "https://korowin.42web.io", label: t("info.author"), Icon: UserIcon },
+    { href: "https://korowin.win", label: t("info.author"), Icon: UserIcon },
     { href: GITHUB_URL, label: t("info.github"), Icon: GitHubIcon },
     { href: `${GITHUB_URL}/issues/new`, label: t("info.reportBug"), Icon: BugIcon },
   ];

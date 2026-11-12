@@ -104,7 +104,7 @@ For manual testing, copy `dist/*` into `%APPDATA%\spicetify\CustomApps\statswin`
 
 ### Releases
 
-Tagging `v*` (for example `v1.1.0`) triggers
+Tagging `v*` (for example `v2.0.0`) triggers
 [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds the zip and
 publishes it as a GitHub release. Pull requests run `typecheck` + `build-local` via
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml).

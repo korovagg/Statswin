@@ -45,6 +45,9 @@ async function main() {
       height: 800,
       openSettings: true,
     },
+    { file: "period-menu-dark.png", query: "theme=dark&lang=en", width: 1280, height: 560, openMenu: true },
+    { file: "custom-dark.png", query: "theme=dark&lang=en", width: 1280, height: 560, period: "Custom" },
+    { file: "settings-general-dark.png", query: "theme=dark&lang=ru", width: 1280, height: 700, openSettings: true, settingsTab: "Общие" },
     { file: "today-narrow.png", query: "theme=dark&lang=en", width: 768, height: 1024 },
   ];
 
@@ -55,14 +58,23 @@ async function main() {
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(harnessUrl(shot.query));
-      await page.waitForSelector("h1:has-text('Statswin')", { timeout: 20000 });
+      await page.waitForSelector("text=Statswin", { timeout: 20000 });
 
       if (shot.period) {
-        await page.getByRole("button", { name: shot.period, exact: true }).first().click();
+        await page.getByRole("button", { name: /^[A-Za-z]+$/ }).first().click();
+        await page.getByRole("option", { name: shot.period, exact: true }).click();
+      }
+      if (shot.openMenu) {
+        await page.getByRole("button", { name: /^[A-Za-z]+$/ }).first().click();
+        await page.waitForSelector('[role="listbox"]');
       }
       if (shot.openSettings) {
-        await page.getByRole("button", { name: "Settings" }).first().click();
+        const settingsName = shot.query.includes("lang=ru") ? "Настройки" : "Settings";
+        await page.getByRole("button", { name: settingsName }).first().click();
         await page.waitForSelector("#statswin-settings-modal");
+        if (shot.settingsTab) {
+          await page.getByRole("tab", { name: shot.settingsTab }).click();
+        }
       }
       if (shot.scrollToTops) {
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));

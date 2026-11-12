@@ -20,6 +20,10 @@ records what you listen to locally. Nothing leaves your machine.
 | --- | --- |
 | ![Top lists](docs/screens/tops-dark.png) | ![Settings](docs/screens/settings-dark.png) |
 
+| Period menu | Custom range |
+| --- | --- |
+| ![Period menu](docs/screens/period-menu-dark.png) | ![Custom range](docs/screens/custom-dark.png) |
+
 Screenshots are generated with Playwright from the production bundle — see
 [docs/screens/README.md](docs/screens/README.md).
 

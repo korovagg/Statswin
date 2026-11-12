@@ -86,7 +86,7 @@
               trackId: track.uri,
               playId: `p${day}-${play}`,
             });
-            registry[track.uri] = { name: track.name, artist: track.artist, artistUri: track.artistUri };
+            registry[track.uri] = { name: track.name, artist: track.artist, artistUri: track.artistUri, imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' fill='%234a5568'/><circle cx='32' cy='32' r='13' fill='%238b9bb0'/></svg>" };
           }
         }
 
@@ -115,7 +115,7 @@
           artist_name: tracks[0].artist,
           artists: [{ uri: tracks[0].artistUri, name: tracks[0].artist }],
           duration: 213_000,
-          album: { images: [] },
+          album: { images: [{ url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' fill='%234a5568'/><circle cx='32' cy='32' r='13' fill='%238b9bb0'/></svg>" }] },
         };
 
         window.Spicetify = {

@@ -21,13 +21,16 @@ npm run screenshots
 
 Output (`docs/screens/`):
 
-| File                | Theme | Viewport  | View                     |
-| ------------------- | ----- | --------- | ------------------------ |
-| `today-dark.png`    | dark  | 1280×800  | Today, hourly chart      |
-| `year-light.png`    | light | 1280×800  | Year, monthly chart      |
-| `tops-dark.png`     | dark  | 1280×800  | Top tracks/artists       |
-| `settings-dark.png` | dark  | 1280×800  | Settings dialog          |
-| `today-narrow.png`  | dark  | 768×1024  | Narrow layout            |
+| File | Theme | Viewport | View |
+| --- | --- | --- | --- |
+| 	oday-dark.png | dark | 1280x800 | Today, hourly chart |
+| year-light.png | light | 1280x800 | Year, monthly chart |
+| 	ops-dark.png | dark | 1280x1100 | Top tracks/artists |
+| settings-dark.png | dark | 1280x800 | Settings, Data tab |
+| settings-general-dark.png | dark (ru) | 1280x700 | Settings, General tab |
+| period-menu-dark.png | dark | 1280x560 | Period dropdown |
+| custom-dark.png | dark | 1280x560 | Custom date range |
+| 	oday-narrow.png | dark | 768x1024 | Narrow layout |
 
 The harness also accepts query parameters for manual inspection:
 

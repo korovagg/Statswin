@@ -14,7 +14,6 @@
  */
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -24,19 +23,17 @@ const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "statswin-counters-"));
 
 function bundle(entry) {
   const outfile = path.join(outDir, `${path.basename(entry, path.extname(entry))}.cjs`);
-  execFileSync(
-    process.execPath,
-    [
-      path.join(root, "node_modules", "esbuild", "bin", "esbuild"),
-      path.join(root, entry),
-      "--bundle",
-      "--format=cjs",
-      "--platform=node",
-      `--outfile=${outfile}`,
-      "--log-level=error",
-    ],
-    { stdio: "pipe" }
-  );
+  // Use esbuild's JS API: the CLI wrapper in node_modules/.bin is a platform
+  // specific shim (broken when spawned through `node` on Linux CI).
+  const esbuild = require(require.resolve("esbuild", { paths: [root] }));
+  esbuild.buildSync({
+    entryPoints: [path.join(root, entry)],
+    outfile,
+    bundle: true,
+    format: "cjs",
+    platform: "node",
+    logLevel: "error",
+  });
   return require(outfile);
 }
 

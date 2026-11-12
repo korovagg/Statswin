@@ -34,6 +34,9 @@ export function Select({ value, options, onChange, ariaLabel, size = "default", 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const listId = useId().replace(/:/g, "");
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 });
+  // The popover is portalled to <body>, so it must be tracked separately from
+  // the trigger wrapper when deciding whether a pointer press is "outside".
+  const menuRef = useRef<HTMLUListElement | null>(null);
   const portalHost =
     typeof window !== "undefined" ? (window.Spicetify?.ReactDOM as PortalHost | undefined) : undefined;
 
@@ -55,11 +58,15 @@ export function Select({ value, options, onChange, ariaLabel, size = "default", 
   useEffect(() => {
     if (!open) return;
     setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
-    const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    const onPointerDown = (event: PointerEvent | MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
+    document.addEventListener("mousedown", onPointerDown, true);
+    return () => document.removeEventListener("mousedown", onPointerDown, true);
   }, [open, selectedIndex]);
 
   const commit = (index: number) => {
@@ -118,6 +125,7 @@ export function Select({ value, options, onChange, ariaLabel, size = "default", 
       {open &&
         (portalHost?.createPortal ?? ((node) => node))(
           <ul
+            ref={menuRef}
             id={listId}
             role="listbox"
             aria-label={ariaLabel}
